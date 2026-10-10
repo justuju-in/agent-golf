@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% set active_page = "board" %}
+
+{% block title %}{{ problem.title if problem else "Board" }}{% endblock %}
+
+{% block head %}
+{%- if problem %}
+  {#- Reloads itself every 30 seconds for the projector; no JavaScript. #}
+  <meta http-equiv="refresh" content="30">
+{%- endif %}
+{%- endblock %}
+
+{% block body_class %} class="board-page"{% endblock %}
+
+{% block main %}
+{%- if not problem %}
+    <h1>Board</h1>
+    <p>No problems are open yet.</p>
+{%- else %}
+    <h1>{{ problem.title }}</h1>
+    <p class="setup">Setup: {{ pages.setup_text(problem) }}</p>
+    <p class="scoring">{{ pages.SCORING }}</p>
+  {%- if others %}
+    <p class="other-boards">Other boards:
+    {%- for other in others %} <a href="/problems/{{ other.slug }}">{{ other.title }}</a>{{ "," if not loop.last }}{% endfor %}</p>
+  {%- endif %}
+  {%- if not board.ranked and not board.unranked %}
+    <p class="empty">No submissions yet. Be the first: the steps are below.</p>
+  {%- else %}
+    <h2 id="ranked-heading">Ranked</h2>
+    {%- if board.ranked %}
+    {#- A labelled, focusable region, so the table can be scrolled sideways from the keyboard. #}
+    <div class="table-scroll" role="region" aria-labelledby="ranked-heading" tabindex="0">
+      <table id="ranked">
+        <thead>
+          <tr>
+            <th scope="col" class="num">Rank</th>
+            <th scope="col">Player</th>
+            {%- if show_model %}
+            <th scope="col">Model</th>
+            {%- endif %}
+            <th scope="col" class="num">Tokens</th>
+            <th scope="col" class="num">Prompts</th>
+            <th scope="col" class="num">Chars</th>
+            <th scope="col" class="num">Tool calls</th>
+            <th scope="col">Submitted</th>
+          </tr>
+        </thead>
+        <tbody>
+        {%- for row in board.ranked %}
+          <tr>
+            <td class="num rank">{{ row.rank }}</td>
+            <th scope="row"><a href="/submissions/{{ row.id }}">{{ row.username }}</a></th>
+            {%- if show_model %}
+            <td class="model">{{ pages.names(row.metrics.models) }}</td>
+            {%- endif %}
+            <td class="num">{{ pages.number(row.metrics.total_tokens) }}</td>
+            <td class="num">{{ pages.number(row.metrics.prompts) }}</td>
+            <td class="num">{{ pages.number(row.metrics.chars_typed) }}</td>
+            <td class="num">{{ pages.number(row.metrics.tool_calls) }}</td>
+            <td><time datetime="{{ row.submitted_at }}">{{ pages.ago(row.submitted_at, now) }}</time></td>
+          </tr>
+        {%- endfor %}
+        </tbody>
+      </table>
+    </div>
+    {%- else %}
+    <p class="empty">No ranked attempts yet.</p>
+    {%- endif %}
+    {%- if board.unranked %}
+    <h2 id="unranked-heading">Unranked</h2>
+    <div class="table-scroll" role="region" aria-labelledby="unranked-heading" tabindex="0">
+      <table id="unranked">
+        <thead>
+          <tr>
+            <th scope="col">Player</th>
+            <th scope="col">Reasons</th>
+            <th scope="col">Submitted</th>
+          </tr>
+        </thead>
+        <tbody>
+        {%- for row in board.unranked %}
+          <tr>
+            <th scope="row"><a href="/submissions/{{ row.id }}">{{ row.username }}</a></th>
+            <td>
+              {%- for code in pages.unranking(row.reasons) %}{{ pages.reason_label(code) }}{{ ", " if not loop.last }}{% endfor -%}
+            </td>
+            <td><time datetime="{{ row.submitted_at }}">{{ pages.ago(row.submitted_at, now) }}</time></td>
+          </tr>
+        {%- endfor %}
+        </tbody>
+      </table>
+    </div>
+    {%- endif %}
+  {%- endif %}
+    <section class="how-to" aria-labelledby="how-to-heading">
+      <h2 id="how-to-heading">How to play</h2>
+      <ol class="steps" role="list">
+        <li>Install the Pi plugin</li>
+        <li><code>/golf-login &lt;key&gt;</code> with the key from <a href="/register">Register</a></li>
+        <li>Solve it in a new Pi session, in a new, empty folder</li>
+        <li><code>/golf-submit {{ problem.slug }}</code></li>
+      </ol>
+    </section>
+{%- endif %}
+{%- endblock %}

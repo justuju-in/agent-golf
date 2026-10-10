@@ -200,3 +200,140 @@ code {
 .copy-status {
   font-weight: 700;
 }
+
+/* Board: shown on a projector, so its text grows in steps with the window. The steps
+   are in rem, so browser zoom still enlarges the text. */
+
+.board-page .wrap {
+  max-width: 90rem;
+}
+
+.board-page main {
+  font-size: 1.125rem;
+}
+
+@media (min-width: 48rem) {
+  .board-page main {
+    font-size: 1.25rem;
+  }
+}
+
+@media (min-width: 75rem) {
+  .board-page main {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 110rem) {
+  .board-page .wrap {
+    max-width: 120rem;
+  }
+
+  .board-page main {
+    font-size: 2rem;
+  }
+}
+
+.board-page h1 {
+  font-size: 2em;
+}
+
+.board-page h2 {
+  margin: 1.5em 0 0.5em;
+  font-size: 1.25em;
+  line-height: 1.2;
+}
+
+.setup,
+.scoring {
+  margin-bottom: 0.25em;
+}
+
+.scoring {
+  font-weight: 700;
+}
+
+.other-boards {
+  margin-top: 0.75em;
+}
+
+.empty {
+  margin-top: 1.5em;
+  font-weight: 700;
+}
+
+/* Tables scroll sideways inside their region on narrow screens. */
+.table-scroll {
+  overflow-x: auto;
+  margin: 0 0 1em;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.375em 0.5em;
+  border-bottom: 1px solid #d9d4cf;
+  text-align: left;
+  vertical-align: baseline;
+}
+
+th:first-child,
+td:first-child {
+  padding-left: 0;
+}
+
+thead th {
+  border-bottom: 3px solid #c46c34;
+  white-space: nowrap;
+}
+
+tbody th {
+  overflow-wrap: anywhere;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rank {
+  font-weight: 700;
+}
+
+td.model {
+  overflow-wrap: anywhere;
+}
+
+td time {
+  white-space: nowrap;
+}
+
+.how-to {
+  margin-top: 2.5em;
+  padding-top: 1em;
+  border-top: 1px solid #d9d4cf;
+}
+
+.board-page .how-to h2 {
+  margin-top: 0;
+}
+
+/* install → /golf-login → solve → /golf-submit */
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25em 0.5em;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li + li::before {
+  content: "→";
+  content: "→" / ""; /* where supported, the arrow is not read out: the list gives the order */
+  margin-right: 0.5em;
+}

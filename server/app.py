@@ -19,7 +19,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from server import db, problems, submissions, users
+from server import board, db, pages, problems, submissions, users
 from server.config import Settings, load_settings
 
 HERE = Path(__file__).resolve().parent
@@ -32,6 +32,7 @@ logging.getLogger("python_multipart").setLevel(logging.ERROR)
 templates = Jinja2Templates(
     env=jinja2.Environment(loader=jinja2.FileSystemLoader(HERE / "templates"), autoescape=True)
 )
+templates.env.globals["pages"] = pages  # the pages' text helpers
 
 router = APIRouter()
 
@@ -121,6 +122,41 @@ async def submit(request: Request, conn: Conn) -> JSONResponse:
     finally:
         await form.close()
     return JSONResponse(body, headers=NO_STORE)
+
+
+def not_found(request: Request) -> HTMLResponse:
+    """The 404 page, for a problem or submission that does not exist."""
+    return templates.TemplateResponse(request, "not_found.html", status_code=404)
+
+
+def board_page(request: Request, conn: sqlite3.Connection, problem: problems.Problem | None) -> HTMLResponse:
+    """A problem's board, with links to the other listed problems' boards; without a
+    problem, a page saying none is open yet."""
+    context: dict = {"problem": problem}
+    if problem is not None:
+        context.update(
+            board=board.board(conn, problem.slug),
+            # docs/spec.md: the board of a model-"any" problem shows each row's model.
+            show_model=problem.model == "any",
+            others=[other for other in problems.listed() if other.slug != problem.slug],
+            now=pages.now(),
+        )
+    return templates.TemplateResponse(request, "board.html", context)
+
+
+@router.get("/", response_class=HTMLResponse)
+def home(request: Request, conn: Conn) -> HTMLResponse:
+    """The first listed problem's board."""
+    listed = problems.listed()
+    return board_page(request, conn, listed[0] if listed else None)
+
+
+@router.get("/problems/{slug}", response_class=HTMLResponse)
+def problem_board(request: Request, slug: str, conn: Conn) -> HTMLResponse:
+    problem = problems.get(slug)
+    if problem is None:
+        return not_found(request)
+    return board_page(request, conn, problem)
 
 
 @router.get("/submissions/{submission_id:int}")

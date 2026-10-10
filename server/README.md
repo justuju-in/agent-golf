@@ -43,6 +43,10 @@ Add `-F folder_was_empty=true` (or `false`) to send what the plugin records; it 
 
 Until step 4.1, scoring is the stand-in in `standin_counter.py`: made-up numbers and verdicts, models named `standin/…`. Problems and their setup live in `problems.py`; only problems whose model and thinking level are set are accepted.
 
+## Pages
+
+- `/` is the board of the first listed problem in `problems.py`; every listed problem has its own at `/problems/<slug>`, and each board links the others. Ranked: each player's best ranked session, fewest tokens first (ties: fewer prompts, then fewer characters; equal scores share a rank), with a model column only when the problem's model is `"any"`. Unranked: the latest attempt of each player with no ranked session, with the reasons that unranked it. Boards reload themselves every 30 seconds, for the projector.
+
 ## Problem list (as `/golf-problems` reads it)
 
 ```bash

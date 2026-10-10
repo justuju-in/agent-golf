@@ -5,13 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{% endblock %} – Agent Golf</title>
   <link rel="stylesheet" href="/static/style.css">
+{%- block head %}{% endblock %}
 </head>
-<body>
+<body{% block body_class %}{% endblock %}>
   <header class="site-header">
     <div class="wrap">
       <span class="site-name">Agent Golf</span>
-      {#- Link only to pages that exist; later steps add Board and Rules. #}
+      {#- Link only to pages that exist; step 3.3 adds Rules. Every board sets active_page. #}
       <nav aria-label="Main">
+        <a href="/"{% if active_page == "board" %} aria-current="page"{% endif %}>Board</a>
         <a href="/register"{% if request.url.path == "/register" %} aria-current="page"{% endif %}>Register</a>
       </nav>
     </div>

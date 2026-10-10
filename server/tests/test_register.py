@@ -133,10 +133,11 @@ class RegisterTest(unittest.TestCase):
     def test_links_and_assets_exist(self):
         key_page = self.register("bob", "bob_h").text
         for page in (Page(self.client.get("/register").text), Page(key_page)):
-            self.assertEqual([a["href"] for a in page.find("a")], ["/register"])
+            links = [a["href"] for a in page.find("a")]
+            self.assertEqual(links, ["/", "/register"])
             urls = [link["href"] for link in page.find("link")]
             urls += [script["src"] for script in page.find("script")]
-            for url in ["/register", *urls]:
+            for url in [*links, *urls]:
                 with self.subTest(url=url):
                     self.assertEqual(self.client.get(url).status_code, 200)
         self.assertEqual(
