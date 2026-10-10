@@ -36,21 +36,23 @@ Avoid `/compact`: it summarizes messages too and drops constraints. If you must,
 
 ## Hand off (end of session)
 
+On a branch, skip this section: the plan's ticks and Changelog entry, committed with the step, are the handoff. Never edit `.agents/HANDOFF.md` on a branch; it is rewritten only when merging to `main`.
+
 Start only after checkpoint committed the human-reviewed or delegated-authorized step. `git status --short` should be clean; stop on unrelated or ambiguous changes.
 
 Overwrite `.agents/HANDOFF.md` from `playbook/templates/HANDOFF.md`, under 60 lines:
 
 active plan + step · branch/SHA/tree state/anything running and how to stop it · decisions with why · blockers (or "none") · exactly one next action · ≤6 read-next files in order · new "do not"s (then promote repo-specific ones to AGENTS.md).
 
-Research repos: add the dated log entry and its one-liner in the index; point at the evidence directory, not just the log. Update `plans/README.md` if status changed. Then run the repository gate. On failure, record it and stop without committing. Record the passing command + result + time in HANDOFF; that record is the only permitted post-gate edit.
+Research repos: add the dated log entry and its one-liner in the index; point at the evidence directory, not just the log. Update `plans/README.md` only when a plan is added or archived; status lives in each plan's frontmatter. Then run the repository gate. On failure, record it and stop without committing. Record the passing command + result + time in HANDOFF; that record is the only permitted post-gate edit.
 
 Run `git status --short` again; inspect every changed/untracked handoff-owned file. Stage only explicit file paths with `git add --` (never `git add -A`, `git add .`, or a directory pathspec), then inspect the cached stat and full cached diff. Stop on anything unreviewed or unrelated. Commit `handoff: plan NNN step N.M`, then stop; do not begin the next action. A delegated final report also shows the authorized review-range `git log` and never pushes.
 
 ## Resume (first thing in a fresh session)
 
-1. Read `AGENTS.md` → `.agents/HANDOFF.md` → active plan → only the "Read next" files.
+1. Read `AGENTS.md` → `.agents/HANDOFF.md` → active plan → only the "Read next" files. On a branch, the plan's Progress and Changelog are newer than HANDOFF.
 2. Re-run the last gate command; if the result differs, that is the first task.
-3. If HANDOFF is older than the last commit, trust git + plan, fix HANDOFF.
+3. If HANDOFF is older than the last commit, trust git + plan; fix HANDOFF only on `main`.
 4. Restate the next action in one sentence and do only that step.
 
 Account for every unfinished backlog or open item from the previous HANDOFF: carry it forward, mark it completed with evidence, or move it to a named plan path that exists. Never silently drop an item. Keep the whole handoff under 60 lines by condensing prose, not by omitting dispositions.

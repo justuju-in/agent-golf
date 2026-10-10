@@ -26,7 +26,7 @@ updated: 2026-10-10
 - [ ] **Phase 4 — Verification and handoff**
   - [ ] 4.1 Upload each file in `samples/` with a test key; rows appear correctly
   - [ ] 4.2 Tell Prateek the live URL so the plugin defaults to it
-  - [ ] 4.3 Gate passes; update `.agents/HANDOFF.md`
+  - [ ] 4.3 Gate passes; tick this plan and add to its Changelog (`HANDOFF.md` only when merging to `main`)
 
 ## Goal
 

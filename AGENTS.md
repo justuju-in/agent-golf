@@ -8,7 +8,7 @@ Agent Golf is a leaderboard for coding-agent efficiency: students solve a Hackat
 
 Read these first, in order, and nothing else until you need it:
 
-1. `.agents/HANDOFF.md` — where the last session stopped
+1. `.agents/HANDOFF.md` — team state as of the last merge to `main` (on a branch, your plan's Progress and Changelog are newer)
 2. `.agents/plans/README.md` — which plan is yours (one plan per person)
 3. `docs/spec.md` — the rules, scoring, and the agreed upload/reply shape
 4. The folder your plan names (`server/`, `plugin/`, or `samples/`)
@@ -30,7 +30,9 @@ Source of truth: `docs/spec.md` owns the rules, metric definitions, and the plug
 ## Commands
 
 ```bash
-bash tools/check.sh   # the gate: runs every test suite that exists yet
+uv venv --python 3.12                       # one-time: Python 3.12 in .venv (the gate uses it when present)
+uv pip install -r server/requirements.txt   # whenever server/requirements.txt changes
+bash tools/check.sh                         # the gate: runs every test suite that exists yet
 ```
 
 Run the gate before every commit. When you add a component's tests, add its test command to `tools/check.sh` so one command keeps covering everything.
@@ -45,12 +47,13 @@ Run the gate before every commit. When you add a component's tests, add its test
 - Do not let `/golf-submit` call the model; submitting must cost zero tokens.
 - Do not upgrade dependencies unless explicitly asked.
 - Keep one writing agent per working copy. Each person works on their own branch and folder, and pulls before pushing.
+- Do not edit `.agents/HANDOFF.md` on a branch. Tick your own plan and add to its Changelog instead; `HANDOFF.md` is updated only when merging to `main`.
 
 ## Plans and skills
 
 - `001-step-0.md` is done by all three together first. Then each person owns one plan: `002-website.md`, `003-counter.md`, `004-plugin-and-deploy.md`. Tick checklists as you go; see `.agents/skills/planning/SKILL.md`.
 - Skills: `planning` (create/resume plans), `session-handoff` (checkpoint and handoff).
-- Before ending a session, update `.agents/HANDOFF.md` (see `.agents/skills/session-handoff/SKILL.md`).
+- Before ending a session on a branch, your plan is the handoff: tick it and add to its Changelog. Only a merge to `main` updates `.agents/HANDOFF.md` (see `.agents/skills/session-handoff/SKILL.md`).
 
 ## External knowledge
 
@@ -63,4 +66,4 @@ Run the gate before every commit. When you add a component's tests, add its test
 
 - Commits: one completed plan step per commit, message `<area>: <what>` (e.g. `counter: sum compaction usage`). Push to your own branch; merge to `main` at checkpoints.
 - Links in docs: relative markdown paths only.
-- Python: standard library first; keep `server/counter/` dependency-free so it is easy to test.
+- Python 3.12 (CI and Docker; locally via `uv`). Standard library first; keep `server/counter/` dependency-free so it is easy to test. Server dependencies are pinned in `server/requirements.txt`.

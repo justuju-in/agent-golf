@@ -10,4 +10,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install server dependencies
+        run: if [ -f server/requirements.txt ]; then python -m pip install -r server/requirements.txt; fi
       - run: bash tools/check.sh

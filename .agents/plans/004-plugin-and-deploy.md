@@ -22,7 +22,7 @@ updated: 2026-10-10
   - [ ] 2.3 `plugin/README.md`: install and update steps for students
 - [ ] **Phase 3 — Verification and handoff**
   - [ ] 3.1 End-to-end from a fresh laptop: install → login → solve → submit → row on live board
-  - [ ] 3.2 Gate passes; update `.agents/HANDOFF.md`
+  - [ ] 3.2 Gate passes; tick this plan and add to its Changelog (`HANDOFF.md` only when merging to `main`)
 
 ## Goal
 

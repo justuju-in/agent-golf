@@ -21,7 +21,7 @@ updated: 2026-10-10
   - [ ] 2.5 Folder-reuse, custom-setup and consistency checks; reasons list
 - [ ] **Phase 3 — Verification and handoff**
   - [ ] 3.1 All three samples give the numbers and verdicts in `samples/README.md`
-  - [ ] 3.2 Gate passes; tell the website owner the function is ready; update `.agents/HANDOFF.md`
+  - [ ] 3.2 Gate passes; tell the website owner the function is ready; tick this plan and add to its Changelog (`HANDOFF.md` only when merging to `main`)
 
 ## Goal
 

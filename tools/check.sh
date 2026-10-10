@@ -6,8 +6,11 @@ cd "$(dirname "$0")/.."
 ran=0
 
 # Counter and server tests (Python, standard library unittest).
+# Use the uv-made .venv (Python 3.12 + server/requirements.txt) when present; CI has no .venv.
+py=python3
+if [[ -x .venv/bin/python ]]; then py=.venv/bin/python; fi
 if compgen -G "server/**/test_*.py" >/dev/null || compgen -G "server/test_*.py" >/dev/null; then
-  python3 -m unittest discover -s server -p 'test_*.py' -t .
+  "$py" -m unittest discover -s server -p 'test_*.py' -t .
   ran=1
 fi
 
