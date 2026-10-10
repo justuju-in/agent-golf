@@ -26,11 +26,36 @@ class CounterTests(unittest.TestCase):
         self.assertEqual(result['metrics']['chars_typed'], 5)
         self.assertEqual(result['metrics']['prompts'], 1)
 
-    def test_missing_and_error_usage_unknown(self):
-        for message in ({'role': 'assistant', 'content': []}, dict(assistant(0), stopReason='error')):
+    def test_normal_missing_usage_unknown(self):
+        for value in (None, {}, {'totalTokens': None}):
+            message = assistant()
+            message['usage'] = value
             result = score(log(message), 'x', AGREED, set())
             self.assertIsNone(result['metrics']['total_tokens'])
             self.assertIn('missing_usage', result['reasons'])
+
+    def test_error_and_aborted_usage_warning(self):
+        from . import WARNING_REASONS, UNRANKING_REASONS
+        for stop in ('error', 'aborted'):
+            for value in (None, {}, {'totalTokens': None}, {'totalTokens': 0}):
+                with self.subTest(stop=stop, value=value):
+                    message = dict(assistant(), stopReason=stop, usage=value)
+                    result = score(log(assistant(12), message), 'x', AGREED, set())
+                    self.assertEqual(result['metrics']['total_tokens'], 12)
+                    self.assertIn('usage_not_recorded', result['reasons'])
+                    self.assertNotIn('missing_usage', result['reasons'])
+        self.assertIn('usage_not_recorded', WARNING_REASONS)
+        self.assertNotIn('usage_not_recorded', UNRANKING_REASONS)
+
+    def test_error_with_recorded_usage_counts(self):
+        result = score(log(dict(assistant(7), stopReason='error')), 'x', AGREED, set())
+        self.assertEqual(result['metrics']['total_tokens'], 7)
+        self.assertNotIn('usage_not_recorded', result['reasons'])
+
+    def test_successful_zero_is_known(self):
+        result = score(log(assistant(0)), 'x', AGREED, set())
+        self.assertEqual(result['metrics']['total_tokens'], 0)
+        self.assertNotIn('missing_usage', result['reasons'])
 
     def test_script_success_and_wrong_problem(self):
         messages = [assistant(content=[{'type': 'toolCall', 'id': 'write', 'name': 'write',
@@ -42,6 +67,42 @@ class CounterTests(unittest.TestCase):
         self.assertFalse(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
         messages[-1]['isError'] = True
         self.assertFalse(score(log(*messages), 'brute_force_zip', AGREED, set())['metrics']['solved'])
+
+    def test_script_built_url_and_relative_reference(self):
+        messages = [assistant(content=[{'type': 'toolCall', 'id': 'write', 'name': 'write',
+                    'arguments': {'path': 'solve.py', 'content':
+                        "host='hackattic.com'; slug='help_me_unpack'; url='https://'+host+'/challenges/'+slug+'/solve'"}}]),
+                    assistant(content=[{'type': 'toolCall', 'id': 'run', 'name': 'bash',
+                    'arguments': {'command': 'python solve.py'}}]),
+                    {'role': 'toolResult', 'toolCallId': 'run', 'content': '{"result":"passed"}'}]
+        result = score(log(*messages), 'help_me_unpack', AGREED, set())
+        self.assertTrue(result['metrics']['solved'])
+        self.assertNotIn('answer_mismatch', result['reasons'])
+        self.assertEqual(result['reasons'], [])
+        self.assertFalse(score(log(*messages), 'brute_force_zip', AGREED, set())['metrics']['solved'])
+        messages[-1]['toolCallId'] = 'unrelated'
+        self.assertFalse(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
+
+    def test_thinking_level_inherited_from_initial_event(self):
+        entries = [json.loads(line) for line in log(assistant()).splitlines()]
+        entries[1]['message'].pop('thinkingLevel')
+        entries.insert(1, {'type': 'thinking_level_change', 'id': 'level', 'parentId': None,
+                          'thinkingLevel': 'low', 'timestamp': '2026-10-10T10:00:00Z'})
+        entries[2]['parentId'] = 'level'
+        result = score('\n'.join(map(json.dumps, entries)), 'x', AGREED, set())
+        self.assertNotIn('thinking_level_mismatch', result['reasons'])
+
+    def test_redacted_real_uploads(self):
+        from pathlib import Path
+        samples = Path(__file__).resolve().parents[2] / 'samples'
+        for filename, tokens, prompts, chars, tools, passed in (
+            ('real-zip-redacted.jsonl', 202053, 10, 599, 15, True),
+            ('real-second-redacted.jsonl', 79221, 2, 41, 9, False),
+        ):
+            result = score((samples / filename).read_text(), 'brute_force_zip', AGREED, set())
+            m = result['metrics']
+            self.assertEqual((m['total_tokens'], m['prompts'], m['chars_typed'], m['tool_calls'], m['solved']),
+                             (tokens, prompts, chars, tools, passed))
 
     def test_assistant_claim_is_not_success(self):
         self.assertFalse(score(log(assistant(content=[{'type': 'text', 'text': '{"result":"passed"}'}])), 'x', AGREED, set())['metrics']['solved'])
@@ -64,18 +125,6 @@ class CounterTests(unittest.TestCase):
         result = score('\n'.join(map(json.dumps, entries)), 'x', AGREED, set())
         self.assertEqual(result['metrics']['total_tokens'], 39)
 
-    def test_unpack_recheck(self):
-        import base64
-        import struct
-        from .hackattic import answer_matches
-        data = struct.pack('<iIh', -3, 7, -2) + b'\0\0' + struct.pack('<f', 1.5) + struct.pack('<d', 2.5) + struct.pack('>d', 3.5)
-        problem = {'bytes': base64.b64encode(data).decode()}
-        answer = dict(int=-3, uint=7, short=-2, float=1.5, double=2.5, big_endian_double=3.5)
-        def entries():
-            return [{'message': {'role': 'toolResult', 'content': json.dumps(problem)+'\n'+json.dumps(answer)}}]
-        self.assertTrue(answer_matches(entries()))
-        answer['int'] = 99
-        self.assertFalse(answer_matches(entries()))
 
 
 if __name__ == '__main__':

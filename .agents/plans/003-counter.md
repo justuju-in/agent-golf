@@ -17,7 +17,7 @@ updated: 2026-10-10
   - [x] 2.1 `server/counter/score.py`: tokens, prompts, characters, tool calls
   - [x] 2.2 Model and thinking-level check across every assistant message
   - [x] 2.3 Solved check from Hackattic's reply in tool results
-  - [ ] 2.4 Answer recheck for *Help me unpack*
+  - [x] 2.4 Answer recheck removed per owner review; Hackattic response is correctness evidence
   - [ ] 2.5 Folder-reuse, custom-setup and consistency checks; reasons list
 - [ ] **Phase 3 — Verification and handoff**
   - [ ] 3.1 All three samples give the numbers and verdicts in `samples/README.md`
@@ -92,3 +92,14 @@ events ──score──▶ {metrics, reasons}
 - Pending: three real redacted fixtures, real unpack recheck validation, comprehensive consistency checks.
 - Integration example and limits: server/counter/README.md.
 - Next: website integration and team agreement on unknown usage.
+
+## Review corrections — 2026-10-10
+
+- Removed answer_matches and answer_mismatch entirely, per latest review.
+- Error/aborted missing/null/zero usage counts zero with usage_not_recorded warning; normal missing usage remains unknown and unranked.
+- Success detection supports script-built URLs and relative script references; explicit problem mismatch rejected.
+- Checked both available real logs: all 26/26 and 8/8 assistant replies have thinkingLevel. Second session has only initial medium-level event. Older-field fallback tested.
+- Added two heavily redacted real upload fixtures with expected metrics and redaction limits in samples/README.md. No credentials or original private transcript committed.
+- bash tools/check.sh: PASS, 13 tests. git diff --check: PASS.
+- Fetched origin/main still has old reason/answer spec; shared-spec edits left to the teammate responsible. Website must handle missing_usage (unrank) and usage_not_recorded (warning).
+- Previous checkpoint statements about errored-zero totals and pending real samples are superseded above. Three dedicated Step 0 fixtures and broader consistency validation remain open.

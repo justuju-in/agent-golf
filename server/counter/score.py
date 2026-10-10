@@ -1,19 +1,19 @@
 """Pure Pi scoring. No database, network requests, or code execution."""
 from datetime import datetime
 from .pi_reader import read_session, text_content
-from .hackattic import solved, answer_matches
+from .hackattic import solved
 
 NOT_SOLVED = 'not_solved'
-ANSWER_MISMATCH = 'answer_mismatch'
 MODEL_MISMATCH = 'model_mismatch'
 THINKING_LEVEL_MISMATCH = 'thinking_level_mismatch'
 FOLDER_REUSED = 'folder_reused'
 CUSTOM_SETUP = 'custom_setup'
 INCONSISTENT_LOG = 'inconsistent_log'
 MISSING_USAGE = 'missing_usage'
-UNRANKING_REASONS = frozenset({NOT_SOLVED, ANSWER_MISMATCH, MODEL_MISMATCH,
+USAGE_NOT_RECORDED = 'usage_not_recorded'
+UNRANKING_REASONS = frozenset({NOT_SOLVED, MODEL_MISMATCH,
                              THINKING_LEVEL_MISMATCH, FOLDER_REUSED, MISSING_USAGE})
-WARNING_REASONS = frozenset({CUSTOM_SETUP, INCONSISTENT_LOG})
+WARNING_REASONS = frozenset({CUSTOM_SETUP, INCONSISTENT_LOG, USAGE_NOT_RECORDED})
 
 
 def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]) -> dict:
@@ -30,8 +30,10 @@ def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]
         if value is None and not required:
             return
         total = value.get('totalTokens') if isinstance(value, dict) else None
-        if (not isinstance(total, int) or isinstance(total, bool) or total < 0
-                or (errored and total == 0)):
+        if errored and (total is None or total == 0) and not isinstance(total, bool):
+            reasons.add(USAGE_NOT_RECORDED)
+            return
+        if not isinstance(total, int) or isinstance(total, bool) or total < 0:
             reasons.add(MISSING_USAGE)
         else:
             metrics['total_tokens'] += total
@@ -102,9 +104,7 @@ def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]
         reasons.add(INCONSISTENT_LOG)
         reasons.add(MISSING_USAGE)
     metrics['models'], metrics['thinking_levels'] = sorted(models), sorted(levels)
-    metrics['solved'] = solved(entries, problem)
-    if metrics['solved'] and problem == 'help_me_unpack' and not answer_matches(entries):
-        reasons.add(ANSWER_MISMATCH)
+    metrics['solved'] = solved([header, *entries], problem)
     if not metrics['solved']:
         reasons.add(NOT_SOLVED)
     if MISSING_USAGE in reasons:

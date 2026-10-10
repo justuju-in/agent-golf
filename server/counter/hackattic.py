@@ -1,6 +1,8 @@
 """Conservative trusted-log evidence checks. Never execute uploaded code."""
 import json
 import re
+import posixpath
+import shlex
 from .pi_reader import text_content
 
 
@@ -18,7 +20,7 @@ def json_objects(text):
 def solved(entries, problem):
     if not re.fullmatch(r'[a-z0-9_]+', problem):
         return False
-    endpoint = re.compile(r'https://hackattic\.com/challenges/' + re.escape(problem) + r'/')
+    cwd = next((e.get('cwd', '/') for e in entries if e.get('type') == 'session'), '/')
     files = {}
     calls = {}
     for entry in entries:
@@ -33,9 +35,11 @@ def solved(entries, problem):
                     continue
                 name = block.get('name')
                 path = args.get('path', args.get('file_path'))
+                if isinstance(path, str):
+                    path = posixpath.normpath(posixpath.join(cwd, path))
                 if name == 'write' and isinstance(path, str):
                     files[path] = args.get('content', '')
-                if name == 'edit' and path in files:
+                if name == 'edit' and isinstance(path, str) and path in files:
                     old, new = args.get('oldText'), args.get('newText')
                     if isinstance(old, str) and isinstance(new, str):
                         files[path] = files[path].replace(old, new)
@@ -43,44 +47,24 @@ def solved(entries, problem):
                         files.pop(path, None)
                 command = args.get('command', '')
                 if name == 'bash' and isinstance(command, str):
+                    try:
+                        words = shlex.split(command)
+                    except ValueError:
+                        words = []
+                    references = {posixpath.normpath(posixpath.join(cwd, word)) for word in words}
                     source = command + '\n' + '\n'.join(
                         value for path, value in files.items()
-                        if isinstance(value, str) and path in command)
-                    calls[block.get('id')] = bool(endpoint.search(source) and 'solve' in source)
+                        if isinstance(value, str) and path in references)
+                    explicit_slugs = re.findall(r'/challenges/([a-z0-9_]+)', source)
+                    explicit_slugs += re.findall(
+                        r"(?:slug|problem|challenge)\s*=\s*['\"]([a-z0-9_]+)['\"]", source)
+                    # The requested problem is used when the script does not expose a slug.
+                    # Reject explicit evidence for a different challenge.
+                    calls[block.get('id')] = bool(
+                        'hackattic.com' in source
+                        and (not explicit_slugs or problem in explicit_slugs))
         elif message.get('role') == 'toolResult' and not message.get('isError'):
             if calls.get(message.get('toolCallId')):
                 if any(obj.get('result') == 'passed' for obj in json_objects(text_content(message))):
-                    return True
-    return False
-
-
-def answer_matches(entries):
-    """Recheck only explicit JSON input/answer pairs printed in tool output.
-
-    Missing evidence is not a match. Never infer a submitted answer from AI prose.
-    """
-    import base64
-    import math
-    import struct
-    expected = None
-    for entry in entries:
-        message = entry.get('message', {})
-        if message.get('role') != 'toolResult' or message.get('isError'):
-            continue
-        for obj in json_objects(text_content(message)):
-            if isinstance(obj.get('bytes'), str):
-                try:
-                    data = base64.b64decode(obj['bytes'], validate=True)
-                    if len(data) != 32:
-                        expected = None
-                        continue
-                    values = struct.unpack('<iIh', data[:10]) + (struct.unpack('<f', data[12:16])[0],) + (struct.unpack('<d', data[16:24])[0], struct.unpack('>d', data[24:32])[0])
-                    expected = dict(zip(('int', 'uint', 'short', 'float', 'double', 'big_endian_double'), values))
-                except (ValueError, struct.error):
-                    expected = None
-            elif expected and all(key in obj for key in expected):
-                if all(isinstance(obj[key], (int, float)) and not isinstance(obj[key], bool)
-                       and math.isclose(obj[key], value, rel_tol=1e-6, abs_tol=1e-7)
-                       for key, value in expected.items()):
                     return True
     return False
