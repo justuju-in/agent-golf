@@ -28,4 +28,24 @@ Submission uploads unchanged JSONL bytes (including abandoned branches), using o
 
 Run `bash tools/check.sh` to exercise login and submission against temporary mock servers and isolated Pi sessions. Tests use disposable keys and temporary credential directories; no real API or credentials are required. Node 22.19+ and `pi` on PATH are required.
 
+### Optional real website login test
+
+From the repo root, prepare Anup's website in a separate worktree (never merge its implementation into the plugin branch):
+
+```bash
+git fetch origin
+git worktree add --detach ../agent-golf-website-test origin/feature/plan-002
+python3.12 -m venv ../agent-golf-website-test/.venv
+../agent-golf-website-test/.venv/bin/python -m pip install -r ../agent-golf-website-test/server/requirements.txt
+AGENT_GOLF_WEBSITE_DIR="$(realpath ../agent-golf-website-test)" bash tools/check.sh
+```
+
+The opt-in test creates a disposable user through the website CLI, starts the real API on an ephemeral loopback port, and exercises Pi login success, invalid-key and offline-server failures, plus missing-key submission guidance. It checks private credential permissions, preservation after failures, zero model calls and unchanged session state. Keys are captured privately, not printed. The server is stopped and temporary data/credentials are deleted afterward. Normal gate runs skip this test when `AGENT_GOLF_WEBSITE_DIR` is absent; they still run all mock and isolated Pi tests.
+
+The prepared website checkout remains available for reruns. Remove it when finished:
+
+```bash
+git worktree remove --force ../agent-golf-website-test
+```
+
 Student install steps go here once publishing is implemented.

@@ -127,7 +127,7 @@ test("invalid problem, missing origin, no UI or busy Pi cannot upload", async (t
 
 test("credentials are required for this exact origin and must be private/readable", async (t) => {
   const f = await fixture(t);
-  assert.match((await submitSession("help_me_unpack", f.ctx, { ...f.options, baseUrl: "http://localhost:8000" })).message, /No key saved/);
+  assert.match((await submitSession("help_me_unpack", f.ctx, { ...f.options, baseUrl: "http://localhost:8000" })).message, /No key saved for this server\. Run \/golf-login <key> first/);
   const path = join(f.credentialDir, "credentials.json");
   await chmod(path, 0o644);
   assert.match((await submitSession("help_me_unpack", f.ctx, f.options)).message, /read securely/);
@@ -296,6 +296,7 @@ for (const [status, reason] of [[401, "bad_key"], [400, "not_pi_log"], [400, "un
     const result = await submitSession("help_me_unpack", f.ctx, f.options);
     assert.equal(result.type, "error");
     assert.ok(result.message.includes(reason));
+    if (status === 401) assert.match(result.message, /Run \/golf-login with a valid key for this server/);
     secretFree(result);
     assert.deepEqual(await readFile(path), before);
   });
@@ -340,11 +341,17 @@ test("timeout and unreachable server warn about uncertain delivery and do not re
   const timedOut = await submitSession("help_me_unpack", f.ctx, { ...f.options, timeoutMs: 80 });
   assert.equal(timedOut.type, "error");
   assert.match(timedOut.message, /may have reached/);
+  assert.match(timedOut.message, /check the website before retrying/);
+  assert.equal(timedOut.message.includes("Submission rejected"), false);
   secretFree(timedOut);
   assert.equal(f.requests.length, 1);
   f.server.closeAllConnections();
   await new Promise((resolve) => f.server.close(resolve));
-  assert.equal((await submitSession("help_me_unpack", f.ctx, f.options)).type, "error");
+  const offline = await submitSession("help_me_unpack", f.ctx, f.options);
+  assert.equal(offline.type, "error");
+  assert.match(offline.message, /server unreachable/);
+  assert.match(offline.message, /check the website before retrying/);
+  secretFree(offline);
   assert.equal(f.requests.length, 1);
 });
 

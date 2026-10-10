@@ -128,7 +128,7 @@ export async function loginStudent(args: string, options: LoginOptions = {}): Pr
     });
     if (response.status === 401) {
       await response.body?.cancel();
-      return { message: "Invalid student key. Existing credentials were not changed.", type: "error" };
+      return { message: "Invalid student key. Run /golf-login <key> with your registered key. Existing credentials were not changed.", type: "error" };
     }
     if (response.status !== 200) {
       await response.body?.cancel();
@@ -145,7 +145,7 @@ export async function loginStudent(args: string, options: LoginOptions = {}): Pr
     username = data.username;
   } catch {
     // Never display server bodies or exception strings: either can contain keys.
-    return { message: "Login failed: server unreachable, request timed out, redirect refused, or invalid response. Existing credentials were not changed.", type: "error" };
+    return { message: "Login failed: server unreachable, request timed out, redirect refused, or invalid response. Check the configured server address and connection, then retry /golf-login. Existing credentials were not changed.", type: "error" };
   }
 
   try {

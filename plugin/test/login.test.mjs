@@ -56,7 +56,7 @@ test("API origin is canonical and restricts insecure or credential-bearing URLs"
   }
 });
 
-test("missing key/origin or invalid origin performs no request or credential write", async (t) => {
+test("missing key or invalid origin override performs no request or credential write", async (t) => {
   const f = await fixture(t);
   for (const [args, options] of [["", f.options], ["two keys", f.options], [KEY, { ...f.options, baseUrl: "" }], [KEY, { ...f.options, baseUrl: "http://example.com" }]]) {
     assertSecretFree(await loginStudent(args, options));
@@ -113,6 +113,12 @@ test("401, server failures and malformed success replies preserve saved bytes an
     f.setReply((_request, response) => { response.writeHead(status, { "Content-Type": type }); response.end(body); });
     const result = await loginStudent(OTHER_KEY, f.options);
     assert.equal(result.type, "error");
+    if (status === 401) {
+      assert.match(result.message, /Invalid student key/);
+      assert.match(result.message, /\/golf-login <key>/);
+    } else {
+      assert.equal(result.message.includes("Invalid student key"), false);
+    }
     assertSecretFree(result);
     assert.deepEqual(await readFile(f.file), before);
   }
@@ -138,12 +144,19 @@ test("timeout and unreachable server preserve saved credentials", async (t) => {
   f.setReply(() => {});
   const timeout = await loginStudent(OTHER_KEY, { ...f.options, timeoutMs: 80 });
   assert.equal(timeout.type, "error");
+  assert.match(timeout.message, /server unreachable, request timed out/);
+  assert.match(timeout.message, /Check the configured server address and connection/);
+  assert.match(timeout.message, /retry \/golf-login/);
+  assert.equal(timeout.message.includes("Invalid student key"), false);
   assertSecretFree(timeout);
   assert.deepEqual(await readFile(f.file), before);
   f.server.closeAllConnections();
   await new Promise((resolve) => f.server.close(resolve));
   const offline = await loginStudent(OTHER_KEY, f.options);
   assert.equal(offline.type, "error");
+  assert.match(offline.message, /server unreachable/);
+  assert.match(offline.message, /retry \/golf-login/);
+  assert.equal(offline.message.includes("Invalid student key"), false);
   assertSecretFree(offline);
   assert.deepEqual(await readFile(f.file), before);
 });
@@ -190,6 +203,7 @@ test("real Pi login command validates and saves without model calls or session s
     f.setReply((_request, response) => { response.writeHead(401); response.end(OTHER_KEY); });
     assert.equal((await request("prompt", { message: `/golf-login ${OTHER_KEY}` })).disposition, "handled");
     assert.deepEqual(await readFile(credentialFile), savedBytes);
+    assert.equal(seen.some((record) => record.method === "notify" && /Invalid student key.*\/golf-login <key>/.test(record.message)), true);
     assert.deepEqual((await request("get_entries")).entries, before);
     assert.deepEqual((await request("get_messages")).messages, []);
     assert.equal((await request("get_session_stats")).tokens.total, 0);
