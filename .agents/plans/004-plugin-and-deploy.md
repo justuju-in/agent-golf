@@ -18,7 +18,7 @@ updated: 2026-10-10
   - [ ] 1.5 Optional: record at session start whether the folder was empty
 - [ ] **Phase 2 — Publish the plugin** (website deployment moved to plan 002, owned by Anup)
   - [ ] 2.1 Make the plugin installable with one `pi install` command (npm or GitHub; see step 2.1)
-  - [ ] 2.2 Plugin points at the live site by default (`https://agent-golf.arnav.tech`), overridable for local testing
+  - [ ] 2.2 Plugin points at the live site by default (`https://agent-golf.justuju.in`), overridable for local testing
   - [ ] 2.3 `plugin/README.md`: install and update steps for students
 - [ ] **Phase 3 — Verification and handoff**
   - [ ] 3.1 End-to-end from a fresh laptop: install → login → solve → submit → row on live board

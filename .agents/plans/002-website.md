@@ -21,7 +21,7 @@ updated: 2026-10-10
 - [ ] **Phase 3 — Docker and deployment** (moved here from plan 004)
   - [ ] 3.1 `server/Dockerfile`: one image with the website and the counter
   - [ ] 3.2 Database and uploads in a mounted volume; survive a container restart
-  - [ ] 3.3 Deploy with HTTPS at agent-golf.arnav.tech (Arnav points the domain)
+  - [ ] 3.3 Deploy with HTTPS at agent-golf.justuju.in
   - [ ] 3.4 Keys and uploads never appear in server logs
 - [ ] **Phase 4 — Verification and handoff**
   - [ ] 4.1 Upload each file in `samples/` with a test key; rows appear correctly
@@ -74,7 +74,7 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 #### 3.3 Deploy
 - Files: deployment notes in `server/README.md`
 - Do: deploy the container to a host of your choice; HTTPS before any key is issued; use the host's real DNS target, do not guess it.
-- Acceptance: `https://agent-golf.arnav.tech/` loads and registration works.
+- Acceptance: `https://agent-golf.justuju.in/` loads and registration works.
 
 ## Validation
 
