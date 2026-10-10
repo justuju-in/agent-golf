@@ -1,7 +1,7 @@
 ---
 name: 004-plugin-and-deploy
 description: Pi extension with /golf-login and /golf-submit in plugin/, then deploy the website to agent-golf.arnav.tech.
-status: created
+status: started
 created: 2026-10-10
 updated: 2026-10-10
 ---
@@ -11,7 +11,7 @@ updated: 2026-10-10
 ## Progress
 
 - [ ] **Phase 1 — Plugin**
-  - [ ] 1.1 `plugin/index.ts` loads in Pi (`pi --extension ./plugin/index.ts`)
+  - [x] 1.1 `plugin/index.ts` loads in Pi (`pi --extension ./plugin/index.ts`)
   - [ ] 1.2 `/golf-login <key>`: check with `GET /api/v1/me`, save key in a private file (mode 0600)
   - [ ] 1.3 `/golf-submit <problem>`: confirm, upload current session file, print score and link
   - [ ] 1.4 Clear messages: no key, bad key, website unreachable
@@ -38,6 +38,11 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 
 ### Phase 1 — Plugin
 
+#### 1.1 Command skeleton
+- Files: `plugin/index.ts`
+- Do: register `/golf-login` and `/golf-submit` with usage and explicit not-implemented notifications; no networking, credential storage, session mutations, or model calls.
+- Acceptance: isolated Pi RPC smoke test (`pi --mode rpc --offline --no-extensions --extension <absolute plugin/index.ts> --session <temporary JSONL>`, with MCP, skills, templates and context discovery disabled) passed: both commands registered; four usage/stub cases handled; zero tokens; no new session entries; disposable key and commands absent from persisted JSONL. Manual TUI check remains available via the command above.
+
 #### 1.3 Submit
 - Files: `plugin/index.ts`
 - Do: get the current session file path from the session manager; show file size and problem; `ctx.ui.confirm`; POST multipart with `Authorization: Bearer <key>`; print status, reasons, metrics, link.
@@ -57,13 +62,16 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 
 - End-to-end test passes for all three team members.
 - `bash tools/check.sh` passes.
+- Step 1.1 checkpoint (2026-10-10): `bash tools/check.sh` → `gate: ok (no component tests yet)`; `git diff --check` passed. Plugin behavior was verified separately with the Pi RPC smoke test described above.
 
 ## Decisions
 
 | Decision | Rationale | Rejected alternative |
 |---|---|---|
 | Pi plugin, not a CLI | Knows the current session; student stays in Pi | Separate CLI that scans session folders |
+| Start with command-only stubs | Validates loading and zero-token dispatch independently of the unavailable server | Implement unvalidated key storage or upload before API agreement |
 
 ## Changelog
 
 - 2026-10-10 — created
+- 2026-10-10 — Prateek owns plan 004; step 1.1 implemented and approved for commit. Login API response and server-origin configuration still need agreement with the website owner.
