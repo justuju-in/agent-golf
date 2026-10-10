@@ -12,7 +12,7 @@ DEFAULT_API_BASE_URL = "http://localhost:8000"
 
 @dataclass(frozen=True)
 class Settings:
-    # SQLite database (later also uploaded logs). Created at startup if missing.
+    # SQLite database and uploaded logs. Created at startup if missing.
     data_dir: Path = DEFAULT_DATA_DIR
     # Public origin, for absolute links in upload replies.
     api_base_url: str = DEFAULT_API_BASE_URL
@@ -20,6 +20,11 @@ class Settings:
     @property
     def db_path(self) -> Path:
         return self.data_dir / "agent_golf.db"
+
+    @property
+    def uploads_dir(self) -> Path:
+        """Raw uploaded session logs. Never served."""
+        return self.data_dir / "uploads"
 
 
 def load_settings(environ: Mapping[str, str] = os.environ) -> Settings:

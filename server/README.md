@@ -14,7 +14,7 @@ uv pip install -r server/requirements.txt   # again whenever requirements.txt ch
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `AGENT_GOLF_DATA_DIR` | `server/data/` (beside this file, whatever the current directory; ignored by git) | SQLite database, later also uploaded logs. Created at startup if missing. |
+| `AGENT_GOLF_DATA_DIR` | `server/data/` (beside this file, whatever the current directory; ignored by git) | SQLite database, and uploaded logs in `uploads/` (never served). Created at startup if missing. |
 | `AGENT_GOLF_API_BASE_URL` | `http://localhost:8000` | Public origin, for absolute links in upload replies. Live: `https://agent-golf.justuju.in`. |
 
 ## Register
@@ -31,3 +31,14 @@ curl -i -H "Authorization: Bearer $KEY" http://localhost:8000/api/v1/me   # 200 
 ```
 
 For the plugin's `/golf-login <key>`, point its `AGENT_GOLF_API_BASE_URL` at `http://localhost:8000`. Never commit a key.
+
+## Upload (as `/golf-submit` does)
+
+```bash
+curl -s -i -H "Authorization: Bearer $KEY" -F problem=help_me_unpack -F session=@path/to/session.jsonl \
+  http://localhost:8000/api/v1/submissions
+```
+
+Add `-F folder_was_empty=true` (or `false`) to send what the plugin records; it is stored and has no effect on ranking. The reply is "Contract: website → plugin" in [`../docs/spec.md`](../docs/spec.md): `200` with `ranked` or `unranked`, or `401`, `400` or `413` with `rejected` and a reason; `500` means a counter bug. Its `url` opens the submission (plain JSON until the page in plan 002 step 3.2). The same file again returns the stored entry; the same session again replaces it, keeping its `url`. The raw file is kept in `uploads/` in the data directory and never served.
+
+Until step 4.1, scoring is the stand-in in `standin_counter.py`: made-up numbers and verdicts, models named `standin/…`. Problems and their setup live in `problems.py`; only problems whose model and thinking level are set are accepted.

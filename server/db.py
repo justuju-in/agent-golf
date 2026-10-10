@@ -12,6 +12,26 @@ CREATE TABLE IF NOT EXISTS users (
     key_hash TEXT NOT NULL UNIQUE,  -- SHA-256 hex of the student key; the key itself is never stored
     created_at TEXT NOT NULL        -- ISO 8601, UTC
 );
+
+-- One row per uploaded session; the raw file is <data dir>/uploads/<id>.jsonl.
+-- A resubmitted session replaces its row in place, keeping its id (and so its link).
+-- AUTOINCREMENT: an id is never reused, so ids follow first-upload order and an old
+-- link never shows another submission.
+CREATE TABLE IF NOT EXISTS submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users (id),
+    problem TEXT NOT NULL,          -- slug from the problem config
+    session_id TEXT NOT NULL,       -- from the counter (session header); never shown publicly
+    cwd TEXT NOT NULL,              -- the session's folder, for later prior_folders; never shown publicly
+    sha256 TEXT NOT NULL,           -- SHA-256 hex of the uploaded file, to spot the same file again
+    folder_was_empty INTEGER,       -- 1 or 0 as the plugin sent it, NULL if not sent; no ranking effect
+    status TEXT NOT NULL,           -- ranked or unranked
+    reasons TEXT NOT NULL,          -- JSON list of reason codes
+    metrics TEXT NOT NULL,          -- JSON object, the counter's metrics
+    first_submitted_at TEXT NOT NULL,  -- ISO 8601, UTC: the session's first upload
+    submitted_at TEXT NOT NULL,        -- ISO 8601, UTC: its latest upload
+    UNIQUE (user_id, session_id)
+);
 """
 
 

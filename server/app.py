@@ -3,6 +3,7 @@
 Run from the repo root: .venv/bin/uvicorn server.app:app --port 8000
 """
 
+import logging
 import sqlite3
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
@@ -10,16 +11,22 @@ from pathlib import Path
 from typing import Annotated
 
 import jinja2
-from fastapi import APIRouter, Depends, FastAPI, Form, Header, Request
+from fastapi import APIRouter, Depends, FastAPI, Form, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import UploadFile
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from server import db, users
+from server import db, problems, submissions, users
 from server.config import Settings, load_settings
 
 HERE = Path(__file__).resolve().parent
 NO_STORE = {"Cache-Control": "no-store"}
+
+# python-multipart warns with bytes quoted from a malformed upload; uploads stay out of logs.
+logging.getLogger("python_multipart").setLevel(logging.ERROR)
 
 # Autoescape on for every template, whatever its file name.
 templates = Jinja2Templates(
@@ -53,6 +60,69 @@ def me(conn: Conn, authorization: Annotated[str | None, Header()] = None) -> JSO
             headers={**NO_STORE, "WWW-Authenticate": "Bearer"},
         )
     return JSONResponse({"username": user["username"]}, headers=NO_STORE)
+
+
+def rejected(reason: str) -> JSONResponse:
+    """A rejected upload's reply (docs/spec.md, "Contract: website → plugin")."""
+    headers = {**NO_STORE, "WWW-Authenticate": "Bearer"} if reason == "bad_key" else NO_STORE
+    return JSONResponse(
+        submissions.rejection(reason),
+        status_code=submissions.REJECTION_STATUS[reason],
+        headers=headers,
+    )
+
+
+@router.post("/api/v1/submissions")
+async def submit(request: Request, conn: Conn) -> JSONResponse:
+    """docs/spec.md, "Contract: plugin → website". Checks in this order: key, problem,
+    then the session (missing, too large, not UTF-8, not a Pi log), then the counter.
+
+    No FastAPI form or header parameters: the form is parsed here, after the key check,
+    so a bad request gets the spec's 400, never FastAPI's 422. Never log the key or the upload.
+    """
+    user = users.user_for_authorization(conn, request.headers.get("authorization"))
+    if user is None:
+        return rejected("bad_key")
+    try:
+        form = await request.form()
+    except StarletteHTTPException:
+        # Unreadable multipart (broken framing, or a plain field over Starlette's 1 MB cap).
+        return rejected("not_pi_log")
+    try:
+        problem = problems.get(form.get("problem"))
+        if problem is None:
+            return rejected("unknown_problem")
+        # `session` must be a file part. Count the bytes read, one past the limit, rather
+        # than trust any size header.
+        session = form.get("session")
+        if not isinstance(session, UploadFile):
+            return rejected("not_pi_log")
+        data = await session.read(submissions.MAX_SESSION_BYTES + 1)
+        if len(data) > submissions.MAX_SESSION_BYTES:
+            return rejected("file_too_large")
+        # Stored as sent; anything but "true" or "false" counts as not sent.
+        flag = form.get("folder_was_empty")
+        folder_was_empty = {"true": True, "false": False}.get(flag) if isinstance(flag, str) else None
+        # Hashing, scoring and storing block, so off the event loop.
+        body = await run_in_threadpool(
+            submissions.submit, conn, request.app.state.settings, user["id"], problem, data, folder_was_empty
+        )
+    except submissions.Rejected as exc:
+        return rejected(exc.reason)
+    except submissions.CounterFailed:
+        return JSONResponse({"error": "server_error"}, status_code=500, headers=NO_STORE)
+    finally:
+        await form.close()
+    return JSONResponse(body, headers=NO_STORE)
+
+
+@router.get("/submissions/{submission_id:int}")
+def submission(submission_id: int, conn: Conn) -> JSONResponse:
+    """The link in upload replies. Until step 3.2's page: the public fields as JSON."""
+    found = submissions.public(conn, submission_id)
+    if found is None:
+        raise HTTPException(status_code=404)
+    return JSONResponse(found)
 
 
 def register_page(
