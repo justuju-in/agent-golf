@@ -13,7 +13,7 @@ Out of scope (version 2): other agents (Claude Code, Codex, OpenCode, Kilo), rou
 
 One attempt = one fresh Pi session in a new, empty folder. Students may make as many attempts as they like; their best solved attempt counts.
 
-1. Setup: the problem's model and thinking level only (shown in the problem list). No rules files, skills or extra setup.
+1. Setup: the problem's model and thinking level only (shown in the problem list). If a problem allows any model, pick one and keep it for the whole session. No rules files, skills or extra setup.
 2. Each attempt: new empty folder, new Pi session, solve from scratch. No code from earlier attempts.
 3. Prompts: plain English only, no code pasted in.
 4. Proof: the program must print both Hackattic's problem reply (the input) and its solve reply (right/wrong).
@@ -23,7 +23,9 @@ One attempt = one fresh Pi session in a new, empty folder. Students may make as 
 
 ## Problems
 
-Model and thinking level are set per problem, not globally. The website keeps a small problem config in `server/`; each entry has `slug`, `title`, Hackattic URL, `instructions`, `model` (`provider/model`) and `thinking_level`. That config is the single source for the problem list, the `unknown_problem` check, and the `agreed` setup passed to the counter, taken from the submitted problem's entry. "Solved" is one generic check (see Scoring), so adding a Hackattic problem needs only a new entry.
+Model and thinking level are set per problem, not globally. The website keeps a small problem config in `server/`; each entry has `slug`, `title`, Hackattic URL, `instructions`, `model` (`provider/model`, or `"any"`) and `thinking_level` (a level, or `"any"`). That config is the single source for the problem list, the `unknown_problem` check, and the `agreed` setup passed to the counter, taken from the submitted problem's entry. "Solved" is one generic check (see Scoring), so adding a Hackattic problem needs only a new entry.
+
+With `"any"`, the counter skips that match. A problem whose model is `"any"` still needs one model for the whole session: a mid-session switch unranks it (`model_switched`). With `thinking_level` `"any"`, thinking-level changes are not flagged. Ranking stays fewest tokens across all models, and the board of a model-`"any"` problem shows each row's model.
 
 ## Scoring
 
@@ -35,7 +37,7 @@ Rank sessions that have no unranking reason (see [Reason codes](#reason-codes)) 
 | Prompts | Messages with role `user` | Tie-break 1 |
 | Characters typed | Sum of Unicode code points of those user messages (CRLF/CR → LF, no trimming) | Tie-break 2 |
 | Tool calls | Tool-call blocks in assistant content (confirm exact block name from `samples/`) | Shown |
-| Model, thinking level | `provider`, `model`, `thinkingLevel` on every assistant message, plus `model_change` / `thinking_level_change` entries | All must match the problem's setup |
+| Model, thinking level | `provider`, `model`, `thinkingLevel` on every assistant message, plus `model_change` / `thinking_level_change` entries | Must match the problem's setup; `"any"` skips that part, but a model-`"any"` session must use one model throughout |
 | Solved | A tool result holds Hackattic's `"result": "passed"` reply for the problem's slug. One generic check for every problem; there is no answer re-check. | Must be yes |
 | Folder | Session `cwd` (header line) not used by an earlier submission of this user | Must be new |
 | No custom setup | No extra rules files or skills in the logged system messages | Warning only |
@@ -83,7 +85,7 @@ This section defines key validation only; it does not define submission failure 
 }
 ```
 
-- Built from the problem config (see [Problems](#problems)); a problem is listed once its model and thinking level are set. An empty `problems` list is valid; the plugin still shows the rules.
+- Built from the problem config (see [Problems](#problems)); a problem is listed once its model and thinking level are set. Either may be `"any"`: show that as "any model, one per session" or "any thinking level". An empty `problems` list is valid; the plugin still shows the rules.
 - `rules` mirror "Rules for students" above, and `rules_version` names that wording. `instructions` are public constraints and evidence requirements, never hints or solution code.
 - Safety, kept by the website and checked by the plugin: every string is plain text and is rendered as text (no markup, terminal control or escape sequences); the body is at most 64 KB and any one string at most 1,000 characters; `challenge_url` is exactly `https://hackattic.com/challenges/<slug>` for that problem's slug.
 - Browsing costs zero tokens: the plugin shows the list with Pi UI only, never through the model or the session, and sends no key and no log.
@@ -123,8 +125,9 @@ This section defines key validation only; it does not define submission failure 
 | Code | Set by | Effect | When |
 |---|---|---|---|
 | `not_solved` | counter | unranked | no `"result": "passed"` reply for the problem's slug |
-| `model_mismatch` | counter | unranked | a reply or model change differs from the problem's model |
-| `thinking_level_mismatch` | counter | unranked | a reply or thinking-level change differs from the problem's thinking level |
+| `model_mismatch` | counter | unranked | a reply or model change differs from the problem's model (not checked when it is `"any"`) |
+| `thinking_level_mismatch` | counter | unranked | a reply or thinking-level change differs from the problem's thinking level (not checked when it is `"any"`) |
+| `model_switched` | counter | unranked | the problem's model is `"any"` and the session used more than one model (`metrics.models` lists several) |
 | `folder_reused` | counter | unranked | the session's `cwd` is in `prior_folders` |
 | `missing_usage` | counter | unranked | a normal assistant reply has no usage, or the session is a fork whose earlier usage is in another file; `total_tokens` is `null` |
 | `custom_setup` | counter | warning only; stays ranked | extra rules files or skills in the logged system messages |
@@ -141,7 +144,7 @@ The website sets `status`: `rejected` for a website code; otherwise `unranked` i
 
 `score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]) -> dict`. Pure function: no network, no database.
 
-- `agreed`: `{"model": "provider/model", "thinking_level": "…"}`, the problem's configured setup.
+- `agreed`: `{"model": "provider/model", "thinking_level": "…"}`, the problem's configured setup. Either value may be `"any"`: the counter skips that match, and for model `"any"` it adds `model_switched` when the session used more than one model.
 - `prior_folders`: the `cwd` of each earlier submission by the same user. A resubmitted session leaves its own folder out (earlier copies with the same `session_id` are skipped), so resubmitting never counts as reusing a folder.
 - Returns `session_id` and `cwd` from the session header, plus the `metrics` above and the counter's `reasons`:
 
