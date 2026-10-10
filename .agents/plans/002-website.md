@@ -14,7 +14,7 @@ updated: 2026-10-10
   - [x] 1.1 Contract and process on `main`: upload status codes, reason codes, counter return and `NotPiLogError`, HANDOFF rule, gate on Python 3.12 (`d412128`, `278dc35`)
   - [x] 1.2 Second round on `main`: per-problem setup and problem config, problem list contract, generic "solved" check, usage reason codes, `agent-golf.justuju.in` (`d32ff18`, `d5062d5`)
 - [ ] **Phase 2 — API, against a stand-in counter**
-  - [ ] 2.1 Stack skeleton (FastAPI, Jinja, SQLite, Python 3.12, pinned `server/requirements.txt`) and `GET /api/v1/me` exactly per `docs/spec.md`
+  - [x] 2.1 Stack skeleton (FastAPI, Jinja, SQLite, Python 3.12, pinned `server/requirements.txt`) and `GET /api/v1/me` exactly per `docs/spec.md`
   - [ ] 2.2 Register page → key page: username + Hackattic username, key shown once, only its SHA-256 stored
   - [ ] 2.3 Stand-in counter in `server/` (never `server/counter/`): the spec's `score()`, `NotPiLogError` and reason sets; gives ranked and unranked results
   - [ ] 2.4 Problem config, then `POST /api/v1/submissions` per `docs/spec.md`: checks, store file, call counter with the problem's setup, store result, reply
@@ -62,6 +62,7 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - Files: `server/requirements.txt`, `server/app.py` and modules beside it, `server/tests/`, `server/README.md`, `server/.gitignore`, `server/__init__.py` (make it identical to the one on Amit's `counter` branch so the two merge cleanly)
 - Do: FastAPI app; SQLite users table (username, Hackattic username, key SHA-256, created time); exact-pinned requirements; `GET /api/v1/me` exactly per "Contract: student key validation" (200 `{"username": …}`, 401 otherwise, `Cache-Control: no-store` on both); keys parsed as UUIDs, then hashed; unittest tests with FastAPI's `TestClient`.
 - Acceptance: `bash tools/check.sh` runs the new tests and passes; with the server on port 8000, `curl` with no key, a bad key and a valid key gives 401, 401, 200, each with `Cache-Control: no-store`; the key appears in neither the database nor the server output.
+- Result (2026-10-10): `bash tools/check.sh` → `Ran 15 tests … OK`, `gate: ok`. Local curl 401/401/200, all `no-store`, checked by the workflow reviewer, by Kiro and by Anup; key absent from the database and server output. Also pinned `starlette==1.7.0` and `pydantic==2.14.0` (FastAPI leaves them open); `server/__init__.py` matches the `counter` branch byte for byte.
 
 #### 2.2 Register
 - Files: `server/`
@@ -166,3 +167,4 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - 2026-10-10 — Anup owns this plan; Docker and website deployment added (moved from plan 004)
 - 2026-10-10 — 1.1 done on `main` (`d412128`, `278dc35`). Restructured: agreements, API against a stand-in counter, pages, real-counter swap, Docker and deploy; stack, page and board decisions recorded
 - 2026-10-10 — Added 1.2 (second spec round, done on `main` as `d32ff18`, `d5062d5`) and 2.5 (`GET /api/v1/problems`); per-problem setup in a website problem config; domain is `agent-golf.justuju.in`; deploy must pass a 19 MB upload
+- 2026-10-10 — 2.1 done: FastAPI skeleton and `GET /api/v1/me`, tested locally by Anup. Later, not today: the tests print a Starlette deprecation warning about httpx; leave it, no dependency upgrades today.
