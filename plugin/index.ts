@@ -1,6 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { loginStudent } from "./login.ts";
 import { submitSession } from "./submit.ts";
+import { browseProblems } from "./problems.ts";
 import { USER_BASH_START, userBashStartMetadata } from "./user-bash.ts";
 import type {
   ExtensionAPI,
@@ -135,6 +136,14 @@ export default function (pi: ExtensionAPI) {
     description: "Validate and privately save your Agent Golf student key",
     handler: async (args, ctx) => {
       const result = await loginStudent(args);
+      ctx.ui.notify(result.message, result.type);
+    },
+  });
+
+  pi.registerCommand("golf-problems", {
+    description: "Browse public Agent Golf rules and problem setup without model calls",
+    handler: async (args, ctx) => {
+      const result = await browseProblems(args, ctx);
       ctx.ui.notify(result.message, result.type);
     },
   });

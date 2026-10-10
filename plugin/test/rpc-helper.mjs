@@ -52,7 +52,10 @@ export function startPi({ cwd, env, sessionDir, sessionFile, onRecord = () => {}
   });
   return {
     seen,
-    respondUI: (id, confirmed) => send({ type: "extension_ui_response", id, confirmed }),
+    respondUI: (id, response) => send({
+      type: "extension_ui_response", id,
+      ...(typeof response === "boolean" ? { confirmed: response } : response === undefined ? { cancelled: true } : { value: response }),
+    }),
     request: (type, fields = {}) => new Promise((resolveRequest, reject) => {
       if (closed) return reject(new Error("Pi already closed"));
       const id = String(++serial);

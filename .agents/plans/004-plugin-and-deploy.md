@@ -10,13 +10,13 @@ updated: 2026-10-11
 
 ## Progress
 
-- [ ] **Phase 1 — Plugin**
+- [x] **Phase 1 — Plugin**
   - [x] 1.1 `plugin/index.ts` loads in Pi (`pi --extension ./plugin/index.ts`)
   - [x] 1.2 `/golf-login <key>`: check with `GET /api/v1/me`, save key in a private file (mode 0600)
   - [x] 1.3 `/golf-submit <problem>`: confirm, upload current session file, print score and link (aligned with the updated reply contract)
   - [x] 1.4 Clear messages: no key, bad key, website unreachable
   - [x] 1.5 Optional: record at session start whether the folder was empty
-  - [ ] 1.6 `/golf-problems`: browse public rules, problems and per-problem setup through Pi UI only
+  - [x] 1.6 `/golf-problems`: browse public rules, problems and per-problem setup through Pi UI only
 - [ ] **Phase 2 — Publish the plugin** (website deployment moved to plan 002, owned by Anup)
   - [ ] 2.1 Make the plugin installable with one `pi install` command (npm or GitHub; see step 2.1)
   - [x] 2.2 Plugin points at the live site by default (`https://agent-golf.justuju.in`), overridable for local testing
@@ -32,7 +32,7 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 ## Context
 
 - Pi extensions: https://pi.dev/docs/latest/extensions — `pi.registerCommand(name, {description, handler})`; the handler gets `ctx` with `ctx.sessionManager`, `ctx.ui.notify`, `ctx.ui.confirm`, `ctx.cwd`.
-- Contract: `docs/spec.md`. The plugin sends the raw file only; it never computes scores. Feature branch rebased onto origin/main `810982a` (includes `d32ff18` plus per-problem `"any"` setup and `model_switched`); local `docs/spec.md` now matches that shared spec. Model/thinking requirements now come from each problem's config, not a global Step 0 choice.
+- Contract: `docs/spec.md`. The plugin sends the raw file only; it never computes scores. Feature branch rebased onto origin/main `c1b61da` (includes per-problem `"any"` setup, `model_switched` and actual-answer-only model checks); local `docs/spec.md` now matches that shared spec. Model/thinking requirements now come from each problem's config, not a global Step 0 choice.
 - Never call the model from the plugin: submitting must cost zero tokens.
 
 ## Steps
@@ -116,6 +116,7 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 | Server owns submission results; no automatic retry | Display agreed response fields without scoring; network failures can leave delivery uncertain | Infer verdicts locally or silently retry a possibly accepted submission |
 | User Bash start hashes matched to recorded results | Pi's isIdle excludes user Bash; custom markers reconstruct pending state without intercepting execution or duplicating plaintext commands; missing results fail closed | Rely only on isIdle, poll file size, or replace Bash execution |
 | Public problem browsing is advisory and UI-only | Shared spec supplies per-problem rules/setup; browsing must cost zero tokens and leave attempts unchanged | Persist selections, bind attempts, insert prompts, or automatically select a model |
+| Native select and temporary editor views; discard edits | Built-in dialogs work in TUI/RPC and scroll long plain-text guidance without Markdown rendering; never use their result as a prompt | Terminal-only custom viewer, clipped notifications, or pasting guidance into the main editor |
 
 ## Changelog
 
@@ -138,4 +139,7 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 - 2026-10-11 — New origin/main c1b61da changes counter semantics only: model/thinking checks ignore setup-change events and use actual replies/model-named usage. Not integrated into this branch yet; login/submission API shape unchanged. Amit still owns alignment; no counter code changed here.
 - 2026-10-11 — Step 1.4 pre-review verification (01:13 IST): `AGENT_GOLF_WEBSITE_DIR=/tmp/agent-golf-login-integration bash tools/check.sh` → `gate: ok`, 72 passed, zero skipped; normal `bash tools/check.sh` → `gate: ok`, 71 passed and the one opt-in test skipped. `git diff --check` and shared-metadata comparison against origin/main passed. Test servers stopped and temporary data/keys removed; detached website checkout/venv retained for reruns during review. No production credentials used.
 - 2026-10-11 — Step 1.4 commit checkpoint (01:30 IST): approved review, no blocking findings. `AGENT_GOLF_WEBSITE_DIR=/tmp/agent-golf-login-integration bash tools/check.sh` → `gate: ok`, 72 passed, zero skipped; `bash tools/check.sh` → `gate: ok`, 71 passed, one opt-in skip. `git diff --check` and shared-metadata comparison against origin/main passed. Only plugin files and owner plan are included; no production credentials or website implementation committed.
-- Next: implement step 1.6 browser against the shared contract, then choose the publishing route. Do not update HANDOFF.md on this branch.
+- 2026-10-11 — Rebased onto latest main c1b61da without conflicts; shared metadata unchanged. Prior default/reply/login commits now ffddac3 / 2c06ce3 / 3bd7fef. No push. Step 1.6 reviewed and approved: public credential-free bounded fetch, complete field/plain-text safety validation, exact challenge URLs, rules/empty-list handling and per-problem setup display. Native select/editor dialogs are temporary and discard edits; no session, model, prompt, credential or attempt changes. RPC helper now supports value/cancellation responses while preserving boolean confirmation behavior. Real website catalogue endpoint remains unavailable on fetched website branch; mock plus real Pi RPC verification used. No blocking review findings; phase 1 implementation complete, with live catalogue/submission verification still pending.
+- 2026-10-11 — Step 1.6 pre-review verification (01:41 IST): `bash tools/check.sh` → `gate: ok`, 89 passed and one opt-in skip; `AGENT_GOLF_WEBSITE_DIR=/tmp/agent-golf-login-integration bash tools/check.sh` → `gate: ok`, all 90 passed. Eighteen new browser tests include byte/Unicode limits, malformed payloads, public default/override requests, stalled bodies, redirects, concurrent/cancelled dialogs and populated/empty/unavailable real Pi RPC flows. Session bytes, entries, model state, credentials and zero usage preserved. `git diff --check` and shared metadata/spec comparison against origin/main passed. Production was not contacted; live catalogue remains pending.
+- 2026-10-11 — Step 1.6/phase 1 checkpoint approved (01:46 IST): no blocking review findings. `bash tools/check.sh` → `gate: ok`, 89 passed, one opt-in skip; `AGENT_GOLF_WEBSITE_DIR=/tmp/agent-golf-login-integration bash tools/check.sh` → `gate: ok`, all 90 passed. `git diff --check` and shared metadata/spec comparison against origin/main passed. Scope: browser, registration, RPC test helper, tests, README and owner plan only. Live catalogue/submission and production verification remain phase 3 work; no push. Restart for publishing after route confirmation.
+- Next: choose the publishing route for step 2.1 (GitHub recommended for MVP; requires confirmation). Do not update HANDOFF.md on this branch.
