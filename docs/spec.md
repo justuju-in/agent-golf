@@ -25,7 +25,7 @@ Open decision: model = `<TBD>`, thinking level = `<TBD>` (decided in Step 0).
 
 ## Scoring
 
-Rank sessions that are solved and pass every rule check by fewest total tokens; ties go to fewer prompts, then fewer characters typed. Everything else is listed below the ranked rows as unranked, with reasons.
+Rank sessions that have no unranking reason (see [Reason codes](#reason-codes)) by fewest total tokens; ties go to fewer prompts, then fewer characters typed. Everything else is unranked, with its reasons. Warnings are shown but do not unrank.
 
 | Metric / check | How it is read from the Pi log | Used for |
 |---|---|---|
@@ -37,8 +37,8 @@ Rank sessions that are solved and pass every rule check by fewest total tokens; 
 | Solved | Hackattic's solve reply appears in a tool result and says correct | Must be yes |
 | Answer recheck | Recompute the answer from the printed problem input; it must match what was sent | Must match |
 | Folder | Session `cwd` (header line) not used by an earlier submission of this user | Must be new |
-| No custom setup | No extra rules files or skills in the logged system messages | Flag |
-| Consistency | Cost matches tokens; timestamps in order; `parentId` chain unbroken; input grows as the chat grows | Flag |
+| No custom setup | No extra rules files or skills in the logged system messages | Warning only |
+| Consistency | Cost matches tokens; timestamps in order; `parentId` chain unbroken; input grows as the chat grows | Warning only |
 | File fingerprint | SHA-256 of the uploaded file | Duplicate detection |
 
 Field names come from https://pi.dev/docs/latest/session-format — verify against `samples/` before relying on them.
@@ -68,7 +68,7 @@ This section defines key validation only; it does not define submission failure 
 - Header `Authorization: Bearer <student key>` (never in the URL)
 - Field `problem`: Hackattic problem slug, e.g. `help_me_unpack`
 - Field `session`: the raw Pi session `.jsonl` file, unchanged
-- Optional field `folder_was_empty`: `true` / `false`, recorded by the plugin at session start
+- Optional field `folder_was_empty`: `true` / `false`, recorded by the plugin at session start. The website stores it; it has no effect on ranking and no reason code.
 
 ## Contract: website → plugin
 
@@ -84,11 +84,46 @@ This section defines key validation only; it does not define submission failure 
 }
 ```
 
-`rejected` = bad key or not a Pi log. Exact reason strings are listed in `server/counter/` and must stay in sync with this file.
+- HTTP `200` for `ranked` and `unranked`.
+- Rejected uploads: `401` `bad_key` (missing or unknown key); `400` `not_pi_log` (missing `session`, or not a Pi session log) or `unknown_problem` (missing or unknown `problem`); `413` `file_too_large` (over 20 MB).
+- These `200`, `400`, `401` and `413` responses all carry the body above. When `status` is `rejected`, `metrics` and `url` are `null`.
+- Any other status (e.g. `500` when the counter crashes) is a server fault with an unspecified body; the plugin reports a server error, not a bad file.
+
+## Reason codes
+
+`reasons` uses only these codes. The counter's codes are constants in `server/counter/` and must match this table.
+
+| Code | Set by | Effect |
+|---|---|---|
+| `not_solved` | counter | unranked |
+| `answer_mismatch` | counter | unranked |
+| `model_mismatch` | counter | unranked |
+| `thinking_level_mismatch` | counter | unranked |
+| `folder_reused` | counter | unranked |
+| `custom_setup` | counter | warning only; stays ranked |
+| `inconsistent_log` | counter | warning only; stays ranked |
+| `bad_key` | website | rejected, HTTP 401 |
+| `not_pi_log` | website | rejected, HTTP 400 |
+| `unknown_problem` | website | rejected, HTTP 400 |
+| `file_too_large` | website | rejected, HTTP 413 |
+
+The website sets `status`: `rejected` for a website code; otherwise `unranked` if any code is marked unranked; otherwise `ranked` (warnings may still be listed).
 
 ## Contract: counter
 
-`score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]) -> dict` returning the `metrics` and `reasons` above. Pure function: no network, no database.
+`score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]) -> dict`. Pure function: no network, no database.
+
+- `agreed`: `{"model": "provider/model", "thinking_level": "…"}`, the setup chosen in Step 0.
+- `prior_folders`: the `cwd` of each earlier submission by the same user. A resubmitted session leaves its own folder out (earlier copies with the same `session_id` are skipped), so resubmitting never counts as reusing a folder.
+- Returns `session_id` and `cwd` from the session header, plus the `metrics` above and the counter's `reasons`:
+
+```json
+{"session_id": "…", "cwd": "…", "metrics": {"total_tokens": 0, "…": "…"}, "reasons": []}
+```
+
+- The website uses `session_id` to replace a resubmitted session and stores `cwd` for later `prior_folders`; `cwd` is never shown publicly.
+- Raises `NotPiLogError`, a dedicated exception defined in `server/counter/`, when the text is not a Pi session log; the website answers `not_pi_log` for it. Any other exception from the counter is a bug, and the website returns `500`.
+- The website imports both as `from server.counter import score, NotPiLogError`.
 
 ## Registration
 
