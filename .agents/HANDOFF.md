@@ -1,49 +1,32 @@
 # HANDOFF
 
-Updated: 2026-10-10 (Prateek, folder-check integration)
+<!-- Overwrite, don't append. Keep under 60 lines. History lives in plans and git. -->
+
+Updated: 2026-10-10 15:00 (Claude, scaffold)
 
 ## Active work
-- Plan: `.agents/plans/004-plugin-and-deploy.md` — steps 1.1 and 1.5 complete; next is 1.2.
-- Owner: Prateek; branch: `feature/plan-004`.
-- Folder feature: `ad814f9`; reviewed fixes: `21d43bf`; both integrated by fast-forward.
-- Working tree clean before this handoff update. Folder-review worktree remains on `feature/golf-folder-check` at `21d43bf`.
-- Running: nothing; temporary Pi smoke-test processes stopped.
+- Plan: `.agents/plans/001-step-0.md` — step 1.1 (not started)
+- Branch: `main`; working tree: clean after the scaffold commit
+- Running: nothing
 
 ## Verified
-- 2026-10-10 20:13 IST: `bash tools/check.sh` → `gate: ok`, all 16 tests passed; `git diff --check` passed after integration.
-- Plugin tests cover command stubs, empty/nonempty/hidden folders, immutable initial observations, resume/reload, prior activity, forks, read failures and session switching.
-- Real CLI reopening of a bash-only JSONL yields unknown, not a fresh-folder certification.
-- Isolated Pi smoke verifies custom metadata outside model context with no model calls or usage.
-- Smoke uses temporary Pi config, disables MCP/discovery, drains stdout, handles spawn errors and bounds shutdown with SIGKILL fallback.
+- `bash tools/check.sh` → passes (no component tests yet)
 
-## Decisions
-- Metadata uses `pi.appendEntry("agent-golf-folder-check", data)`; preserve the first valid observation.
-- Before startup/new observation, allow only known initialization entries (model/thinking changes and session name); other prior activity yields unknown.
-- Submit should use `getFolderWasEmptyUploadValue(header, entries)`: true/false strings for known observations; omit unknown/absent/inherited-session evidence.
-- Use public Pi type exports; plugin does not compute scores or invoke the model.
-- `/api/v1/me` is agreed in `docs/spec.md` (main commit `2fd07a1`): Bearer key, 200 username JSON, 401 for missing/malformed/invalid credentials.
-- Anup owns website, Docker and deployment; Prateek owns plugin and publishing.
+## Decisions this session
+- MVP is Pi-only, Hackattic for correctness, log file as the only evidence — because it fits one day; rejected Arnav's five-agent plan for now
+- Plugin, not a CLI — because the plugin knows the current session
 
-## Limitations / open questions
-- Folder observation is a trusted-student signal, not tamper-proof proof of session freshness.
-- Pi may keep custom-only sessions in memory until normal conversation causes the file to flush; smoke verifies session state, not disk persistence for a custom-only session.
-- Production origin remains unresolved; configure it separately. Login can be built/tested against a mock without deployment.
-- Website API is not implemented in this branch; failed submission HTTP/error-body details still need agreement.
-- Step 0 (plan 001) remains pending: competition model/thinking level TBD, sample logs and expected notes missing.
-- Plan 003 owner remains unset; student installation method still needs choosing before publishing.
+## Blockers / open questions
+- Model and thinking level not chosen yet (Step 0, 1.1)
+- Owners for plans 002–004 not filled in
 
 ## Next action
-Implement plan 004 step 1.2 login and repeatable mock-API tests, reusing the existing plugin test setup.
+Do Step 0 together: `.agents/plans/001-step-0.md` phase 1; acceptance: three redacted logs and `samples/README.md` committed.
 
-## Read next
-1. `.agents/plans/004-plugin-and-deploy.md`
-2. `docs/spec.md`
-3. `plugin/index.ts`
-4. `plugin/test/folder-check.test.mjs`
-5. `plugin/package.json`
-6. `tools/check.sh`
+## Read next (≤6)
+1. `docs/spec.md` — rules, scoring, contract
+2. `.agents/plans/README.md` — who owns what
+3. Your own plan file
 
-## Do not
-- Never echo/persist keys in session entries, compute scores, or invoke the model from plugin commands.
-- Never certify forked/inherited sessions from copied folder metadata.
-- Do not change shared contracts or ranking policy without notifying the other owners.
+## Do not (promote to AGENTS.md at next checkpoint)
+- none yet
