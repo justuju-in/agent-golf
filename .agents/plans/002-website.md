@@ -45,7 +45,8 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 
 - Contract and rules: `docs/spec.md`. "Contract: student key validation" is Prateek's and fixed; the rest was agreed in 1.1 and 1.2. Change none of it without telling the other two.
 - Counter: `server/counter/` is Amit's (branch `counter`, plan 003); never create or edit files there. Until it merges, the website calls the stand-in from 2.3, which has the same names (`score`, `NotPiLogError`, `UNRANKING_REASONS`, `WARNING_REASONS`); 4.1 swaps the import. "Solved" is one generic check inside the counter, so the website never needs per-problem scoring code.
-- Problem config (`server/`, from 2.4): one entry per Hackattic problem with slug, title, Hackattic URL, instructions, model and thinking level, plus the rules text and `rules_version`. It is the single source for the problem list, the `unknown_problem` check, the `agreed` setup sent to the counter, and the board and rules pages. Adding a problem means adding an entry. `help_me_unpack`'s model and thinking level come from Step 0 (plan 001); until then it is not listed.
+- Problem config (`server/`, from 2.4): one entry per Hackattic problem with slug, title, Hackattic URL, instructions, model (`provider/model` or `"any"`) and thinking level (a level or `"any"`), plus the rules text and `rules_version`. It is the single source for the problem list, the `unknown_problem` check, the `agreed` setup sent to the counter, and the board and rules pages. Adding a problem means adding an entry. For now `help_me_unpack` is `"any"`/`"any"` so uploads aren't refused; a comment says Step 0 (plan 001) sets the real values.
+- Models (`docs/spec.md`, 810982a and c1b61da): only models and levels that actually answered count. With `"any"` the match is skipped, but a model-`"any"` session that used more than one model gets `model_switched` (unranks). The board shows a model column only when the problem's model is `"any"`; the submission page always shows the model.
 - Plugin: Prateek (plan 004) reads the server origin from `AGENT_GOLF_API_BASE_URL` (`http://localhost:8000` locally, `https://agent-golf.justuju.in` live). The website reads the same variable to build the absolute `url` in replies.
 - Data: SQLite database and uploaded logs live in `AGENT_GOLF_DATA_DIR` (default `server/data/`, ignored by `server/.gitignore`; `/data` in Docker). Review notes from workflows land in `server/.agents-review/`, ignored by the root `.gitignore`.
 - Local setup: `uv venv --python 3.12 && uv pip install -r server/requirements.txt`; run `.venv/bin/uvicorn server.app:app --port 8000`. `server/README.md` keeps the exact commands.
@@ -72,29 +73,30 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 
 #### 2.3 Stand-in counter
 - Files: `server/standin_counter.py` and its tests (both deleted in 4.1)
-- Do: `score(session_text, problem, agreed, prior_folders)`, `NotPiLogError`, `UNRANKING_REASONS` and `WARNING_REASONS` as in "Contract: counter"; `session_id` and `cwd` from the header line when present; deterministic made-up metrics from the file hash; some files ranked, some unranked with reasons, one case with `missing_usage` and `total_tokens: null`; `folder_reused` when `cwd` is in `prior_folders`; `NotPiLogError` for text that is not JSON lines.
-- Acceptance: tests show a ranked result, an unranked one with reasons, `missing_usage` with a null total, `folder_reused`, and `NotPiLogError`.
+- Do: `score(session_text, problem, agreed, prior_folders)`, `NotPiLogError`, `UNRANKING_REASONS` and `WARNING_REASONS` as in "Contract: counter"; `session_id` and `cwd` from the header line when present; deterministic made-up metrics from the file hash; some files ranked, some unranked with reasons, one case with `missing_usage` and `total_tokens: null`; `folder_reused` when `cwd` is in `prior_folders`; `NotPiLogError` for text that is not JSON lines. With `agreed` `"any"`, skip that match; for model `"any"`, a made-up second model gives `model_switched`.
+- Acceptance: tests show a ranked result, an unranked one with reasons, `missing_usage` with a null total, `folder_reused`, `model_switched` under model `"any"`, and `NotPiLogError`.
 
 #### 2.4 Problem config and upload
 - Files: `server/` (problem config module, upload route, tests)
 - Do:
-  - Problem config as in Context; `help_me_unpack` entry first, with its setup marked unset until Step 0 picks it.
+  - Problem config as in Context; `help_me_unpack` entry first, with model `"any"` and thinking level `"any"` for now and a comment that Step 0 sets the real values.
   - Rejections per the spec: unknown or missing key → 401 `bad_key`; problem not in the config → 400 `unknown_problem`; `session` over 20 MB → 413 `file_too_large`; missing `session` or not UTF-8 → 400 `not_pi_log`; counter's `NotPiLogError` → 400 `not_pi_log`; any other counter exception → 500.
   - Identical file (SHA-256) from the same user returns the existing entry. Call the counter once with no folders to learn `session_id` and `cwd`, then again with `prior_folders` = the user's other sessions' folders, both times with `agreed` from the problem's config entry. Same `session_id` from the same user replaces the earlier row and file.
   - Store `folder_was_empty` (no ranking effect); set `status` from `UNRANKING_REASONS`; reply per the spec, `url` from `AGENT_GOLF_API_BASE_URL`.
-- Acceptance: tests cover every status code and reason above, replacement and identical-file dedupe; a `curl -F` upload to the local server returns the spec's body.
+  - Until 3.2, `GET /submissions/<id>` returns the submission's public fields as plain JSON, so the reply's link opens.
+- Acceptance: tests for 200 ranked, 200 unranked, 401 `bad_key`, 400 `unknown_problem`, 400 `not_pi_log`, 413 `file_too_large` and 500 for a counter crash; resubmitting the same session replaces it; the same file twice returns the existing entry. A `curl -F` upload to the local server returns the spec's body, and its link opens.
 
 #### 2.5 Problem list
 - Files: `server/` (route, tests)
-- Do: `GET /api/v1/problems` exactly per "Contract: problem list": public, built from the problem config, lists only problems whose model and thinking level are set, keeps the safety limits (plain text, 64 KB body, 1,000 characters per string, `challenge_url` = `https://hackattic.com/challenges/<slug>`).
+- Do: `GET /api/v1/problems` exactly per "Contract: problem list": public, built from the problem config, lists only problems whose model and thinking level are set (`"any"` counts as set), keeps the safety limits (plain text, 64 KB body, 1,000 characters per string, `challenge_url` = `https://hackattic.com/challenges/<slug>`).
 - Acceptance: tests cover the populated and empty lists and the limits; `curl http://localhost:8000/api/v1/problems` needs no key.
 
 ### Phase 3 — Pages
 
 #### 3.1 Board
 - Files: `server/` templates
-- Do: one board per problem at `/problems/<slug>`; the home page shows the first listed problem's board and links the others. Header: problem title, its model and thinking level, the scoring line. Ranked rows sorted by `(total_tokens, prompts, chars_typed)`, equal scores share a rank, each player only their best ranked session; columns rank, player, tokens, prompts, chars, tool calls, submitted (no model column). Below, "Unranked": each player's latest unranked attempt, only if that player has no ranked row, with reasons in plain English. Footer: install → `/golf-login` → solve → `/golf-submit`. Meta refresh every 30 s; text sized for a projector.
-- Acceptance: with the stand-in, mixed uploads show ranked rows in order and only the allowed unranked rows; the page reloads itself every 30 s.
+- Do: one board per problem at `/problems/<slug>`; the home page shows the first listed problem's board and links the others. Header: problem title, its model and thinking level ("any model, one per session" for `"any"`), the scoring line. Ranked rows sorted by `(total_tokens, prompts, chars_typed)`, equal scores share a rank, each player only their best ranked session; columns rank, player, tokens, prompts, chars, tool calls, submitted, plus a model column only when the problem's model is `"any"` (hidden when the problem has one fixed model). Below, "Unranked": each player's latest unranked attempt, only if that player has no ranked row, with reasons in plain English. Footer: install → `/golf-login` → solve → `/golf-submit`. Meta refresh every 30 s; text sized for a projector.
+- Acceptance: with the stand-in, mixed uploads show ranked rows in order and only the allowed unranked rows; the model column appears for an `"any"` problem and not for a fixed-model one; the page reloads itself every 30 s.
 
 #### 3.2 Submission page
 - Files: `server/` templates
@@ -151,7 +153,8 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 | Model and thinking level per problem, in one website problem config (slug, title, Hackattic URL, instructions, model, thinking level) | Several Hackattic problems this week, possibly with different setups; one source feeds the problem list, `unknown_problem`, `agreed` and the pages | One global setup in the spec |
 | Pages: board, register, key page, submission, rules | Smallest set for tonight; admin work uses the SQLite command line | Player page; admin page |
 | Home page = first listed problem's board, with links to the others | One obvious board for the projector; more problems need no new page | A problem index page |
-| Board: no model column; unranked shows each player's latest attempt, only if they have no ranked row | The model is the same for every ranked row; keeps the projector board short | Model column; every unranked attempt |
+| Board: model column only when the problem's model is `"any"`; unranked shows each player's latest attempt, only if they have no ranked row | Matches the spec; with one fixed model the column would repeat the same value on every row; keeps the projector board short | Model column always; never a model column; every unranked attempt |
+| Submission page always shows the model and thinking level | Each attempt's setup is visible even when the board hides it | Board only |
 | Projector: meta refresh every 30 s, larger text | The board is shown in the room; no JavaScript needed | Manual refresh; live updates |
 | Plain light pages, `#272426` text, `#c46c34` accent | No time for Claude Design today | Claude Design mock first |
 | Stand-in counter in `server/`, swapped in 4.1 | The website ships before the counter; `server/counter/` is Amit's | Waiting for the real counter |
@@ -170,3 +173,4 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - 2026-10-10 — Added 1.2 (second spec round, done on `main` as `d32ff18`, `d5062d5`) and 2.5 (`GET /api/v1/problems`); per-problem setup in a website problem config; domain is `agent-golf.justuju.in`; deploy must pass a 19 MB upload
 - 2026-10-10 — 2.1 done: FastAPI skeleton and `GET /api/v1/me`, tested locally by Anup. Later, not today: the tests print a Starlette deprecation warning about httpx; leave it, no dependency upgrades today.
 - 2026-10-11 — 2.2 done: register form and key page (Jinja templates, one CSS file, copy-button JS only); `create_user` now checks the Hackattic username (required, trimmed, at most 64 characters, no control characters).
+- 2026-10-11 — Merged `main` (810982a, c1b61da). The problem config allows `"any"` (`help_me_unpack` is `"any"`/`"any"` until Step 0); the stand-in follows `model_switched`; the board shows a model column only for model-`"any"` problems, as the spec says; the submission page always shows the model; 2.4 serves a plain JSON `/submissions/<id>` until 3.2.
