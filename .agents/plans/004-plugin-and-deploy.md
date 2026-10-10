@@ -16,10 +16,10 @@ updated: 2026-10-10
   - [ ] 1.3 `/golf-submit <problem>`: confirm, upload current session file, print score and link
   - [ ] 1.4 Clear messages: no key, bad key, website unreachable
   - [ ] 1.5 Optional: record at session start whether the folder was empty
-- [ ] **Phase 2 — Go live**
-  - [ ] 2.1 Deploy `server/` with HTTPS at agent-golf.arnav.tech (Arnav points the domain)
-  - [ ] 2.2 Keys and uploads never appear in server logs
-  - [ ] 2.3 `plugin/README.md`: three-line install steps for students
+- [ ] **Phase 2 — Publish the plugin** (website deployment moved to plan 002, owned by Anup)
+  - [ ] 2.1 Make the plugin installable with one `pi install` command (npm or GitHub; see step 2.1)
+  - [ ] 2.2 Plugin points at the live site by default (`https://agent-golf.arnav.tech`), overridable for local testing
+  - [ ] 2.3 `plugin/README.md`: install and update steps for students
 - [ ] **Phase 3 — Verification and handoff**
   - [ ] 3.1 End-to-end from a fresh laptop: install → login → solve → submit → row on live board
   - [ ] 3.2 Gate passes; update `.agents/HANDOFF.md`
@@ -43,12 +43,15 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 - Do: get the current session file path from the session manager; show file size and problem; `ctx.ui.confirm`; POST multipart with `Authorization: Bearer <key>`; print status, reasons, metrics, link.
 - Acceptance: submitting a finished session against a local server returns the reply shape in `docs/spec.md`.
 
-### Phase 2 — Go live
+### Phase 2 — Publish the plugin
 
-#### 2.1 Deploy
-- Files: deployment config in `server/` (provider of your choice)
-- Do: HTTPS before any key is issued; use the provider's real DNS target, do not guess it.
-- Acceptance: `https://agent-golf.arnav.tech/` loads and registration works.
+#### 2.1 One-command install
+- Files: `plugin/package.json`, and a root `package.json` only if using the GitHub route
+- Do (pick one; see https://pi.dev/docs/latest/packages):
+  - npm: publish the plugin as a Pi package; students run `pi install npm:<package-name>`.
+  - GitHub: Pi installs a whole repo, not a subfolder, so add a root `package.json` whose `pi.extensions` points at `plugin/index.ts`; students run `pi install git:github.com/justuju-in/agent-golf`.
+  - Host packages (`@earendil-works/pi-coding-agent` etc.) go in `peerDependencies` with `"*"`.
+- Acceptance: on a laptop without the repo, the install command adds `/golf-login` and `/golf-submit`; `pi update --extensions` picks up a new version.
 
 ## Validation
 

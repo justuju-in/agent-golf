@@ -7,7 +7,7 @@ Format and workflow: `.agents/skills/planning/SKILL.md`.
 | Plan | Owner | Status |
 |---|---|---|
 | [001 — Step 0, all three together](./001-step-0.md) | Anup, Amit, Prateek | created |
-| [002 — Website](./002-website.md) | `<name>` | created |
+| [002 — Website, Docker and website deployment](./002-website.md) | Anup | created |
 | [003 — Counter](./003-counter.md) | `<name>` | created |
 | [004 — Pi plugin and going live](./004-plugin-and-deploy.md) | `<name>` | created |
 
