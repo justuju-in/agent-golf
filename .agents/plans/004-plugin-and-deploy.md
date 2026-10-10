@@ -13,7 +13,7 @@ updated: 2026-10-10
 - [ ] **Phase 1 — Plugin**
   - [x] 1.1 `plugin/index.ts` loads in Pi (`pi --extension ./plugin/index.ts`)
   - [x] 1.2 `/golf-login <key>`: check with `GET /api/v1/me`, save key in a private file (mode 0600)
-  - [ ] 1.3 `/golf-submit <problem>`: confirm, upload current session file, print score and link
+  - [x] 1.3 `/golf-submit <problem>`: confirm, upload current session file, print score and link
   - [ ] 1.4 Clear messages: no key, bad key, website unreachable
   - [x] 1.5 Optional: record at session start whether the folder was empty
 - [ ] **Phase 2 — Publish the plugin** (website deployment moved to plan 002, owned by Anup)
@@ -50,9 +50,9 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 - Acceptance: mock-API and isolated Pi command tests exercise successful login, failures, permissions, origin isolation, secret-free output and unchanged session/model state; `bash tools/check.sh` passes. Real-server integration remains pending.
 
 #### 1.3 Submit
-- Files: `plugin/index.ts`
-- Do: get the current session file path from the session manager; show file size and problem; `ctx.ui.confirm`; POST multipart with `Authorization: Bearer <key>`; print status, reasons, metrics, link.
-- Acceptance: submitting a finished session against a local server returns the reply shape in `docs/spec.md`.
+- Files: `plugin/index.ts`, `plugin/submit.ts`, `plugin/user-bash.ts`, credential reader in `plugin/login.ts`, `plugin/test/submit.test.mjs`, `plugin/test/user-bash.test.mjs`, shared `plugin/test/rpc-helper.mjs`, existing test adjustments, `plugin/README.md`
+- Do: require idle Pi, no outstanding user Bash starts without recorded results, and a persisted session file; load private credentials for the configured origin; show problem, origin, file size and raw-log privacy warning; confirm via `ctx.ui.confirm`; refuse session/file changes during confirmation; POST unchanged bytes as multipart with `Authorization: Bearer <key>` and optional known folder observation; display server-provided status, reasons, metrics and link. Refuse redirects and automatic retries; distinguish server faults from rejected uploads; never echo arbitrary response bodies or secrets.
+- Acceptance: mock HTTP tests verify multipart fields and unchanged full-file bytes, cancellation, preflight errors, session changes, ranked/unranked/warning/rejected responses and network failures. Real Pi RPC tests confirm UI cancellation/upload with unchanged session entries, file and model activity. Real-server integration remains pending.
 
 #### 1.5 Folder start observation
 - Files: `plugin/index.ts`, `plugin/package.json`, `plugin/test/folder-check.test.mjs`
@@ -80,6 +80,8 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 
 - Step 1.2 checkpoint (2026-10-10 20:42 IST): `bash tools/check.sh` → `gate: ok`, all 26 tests passed; `git diff --check` passed. Mock API and real Pi command verified login without model activity or session secrets; real-server integration pending.
 
+- Step 1.3 checkpoint (2026-10-10 21:23 IST): `bash tools/check.sh` → `gate: ok`, all 55 tests passed; `git diff --check` passed. Real Pi regressions refuse upload while user Bash is outstanding, then upload its recorded final output after completion. Mock multipart uploads preserve full raw bytes and folder metadata; submission adds no model activity or session mutations. Real-server integration pending.
+
 ## Decisions
 
 | Decision | Rationale | Rejected alternative |
@@ -91,6 +93,9 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 | Explicit API origin until production address is agreed | Avoid sending credentials to an assumed host; localhost:8000 is a manual development convention | Hardcoded provisional production default |
 | Permission-protected local credentials, isolated per origin | Approved MVP storage lets the plugin authenticate without conflating test/live keys; server still stores only hashes | OS keychain dependency or unusable client-side hash-only storage |
 | Refuse credential-validation redirects | Do not forward keys to an unexpected destination | Automatically follow server redirects |
+| Confirm raw bytes and refuse changed-session uploads | User approves the exact session snapshot and destination; preserve all branches without model calls | Branch export, upload-time redaction, or uploading after the user switches sessions |
+| Server owns submission results; no automatic retry | Display agreed response fields without scoring; network failures can leave delivery uncertain | Infer verdicts locally or silently retry a possibly accepted submission |
+| User Bash start hashes matched to recorded results | Pi's isIdle excludes user Bash; custom markers reconstruct pending state without intercepting execution or duplicating plaintext commands; missing results fail closed | Rely only on isIdle, poll file size, or replace Bash execution |
 
 ## Changelog
 
@@ -100,4 +105,5 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 - 2026-10-10 — Review fixes approved: reject prior non-initialization activity, use public Pi type exports, and isolate/harden subprocess tests. `/me` contract is agreed on main; production origin remains unresolved.
 - 2026-10-10 — Step 1.2 reviewed and approved: login validates `/me` before private atomic per-origin storage; redirects refused; 26-test mock/Pi coverage. Real-server integration is pending. Writes are serialized within one Pi process only. No model calls, session secrets, or upload implementation added.
 - 2026-10-10 — Rebased onto main `278dc35`, including upload HTTP/error contracts from `d412128` and updated branch-only plan status/Python gate rules. Resolved plan-index conflict by retaining main's owner-only table (Amit owns counter); login and local-storage clarification preserved. Post-integration verification: `bash tools/check.sh` → `gate: ok`, all 26 tests passed; `git diff --check` passed.
-- Next: implement step 1.3 against a mock using the updated upload contract. Production origin remains unresolved; do not update HANDOFF.md on this branch.
+- 2026-10-10 — Step 1.3 reviewed and approved: unchanged multipart upload, explicit raw-log confirmation, private per-origin credential reading, server-owned response display, no automatic retries, and no model calls. Fixed reviewed P2 incomplete-upload issue with hashed user-Bash start markers matched to recorded results; real Pi tests cover Bash already running and started during confirmation. Missing Bash results fail closed. Real-server integration remains pending.
+- Next: verify step 1.4 error-message acceptance, then choose the plugin publishing route for phase 2. Production origin remains unresolved; do not update HANDOFF.md on this branch.

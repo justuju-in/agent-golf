@@ -56,6 +56,28 @@ function isCredentialFile(value: unknown): value is CredentialFile {
   });
 }
 
+export async function readStoredCredential(
+  origin: string,
+  directory = join(homedir(), ".config", "agent-golf"),
+): Promise<Credential | undefined> {
+  let file;
+  try {
+    const folder = await lstat(directory);
+    if (!folder.isDirectory() || (folder.mode & 0o077) !== 0) throw new Error("insecure-credential-directory");
+    file = await open(join(directory, "credentials.json"), constants.O_RDONLY | constants.O_NOFOLLOW);
+    const info = await file.stat();
+    if (!info.isFile() || (info.mode & 0o077) !== 0) throw new Error("insecure-credential-file");
+    const parsed: unknown = JSON.parse(await file.readFile("utf8"));
+    if (!isCredentialFile(parsed)) throw new Error("invalid-credential-file");
+    return parsed.credentials[origin];
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return undefined;
+    throw error;
+  } finally {
+    await file?.close();
+  }
+}
+
 // Serialize read-modify-write operations within this Pi process so concurrent
 // logins to different origins don't erase one another's saved credentials.
 let pendingSave: Promise<void> = Promise.resolve();

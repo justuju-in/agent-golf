@@ -1,5 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { loginStudent } from "./login.ts";
+import { submitSession } from "./submit.ts";
+import { USER_BASH_START, userBashStartMetadata } from "./user-bash.ts";
 import type {
   ExtensionAPI,
   ExtensionContext,
@@ -125,6 +127,10 @@ export default function (pi: ExtensionAPI) {
     await recordFolderCheckForSession(pi, event, ctx);
   });
 
+  pi.on("user_bash", (event) => {
+    pi.appendEntry(USER_BASH_START, userBashStartMetadata(event.command));
+  });
+
   pi.registerCommand("golf-login", {
     description: "Validate and privately save your Agent Golf student key",
     handler: async (args, ctx) => {
@@ -134,14 +140,12 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("golf-submit", {
-    description: "Submit the current session to Agent Golf (not implemented yet)",
+    description: "Confirm and upload the current raw session to Agent Golf",
     handler: async (args, ctx) => {
-      if (!args.trim()) {
-        ctx.ui.notify("Usage: /golf-submit <problem>", "info");
-        return;
-      }
-
-      ctx.ui.notify("Agent Golf submission is not implemented yet. Nothing was uploaded.", "info");
+      const result = await submitSession(args, ctx, {
+        folderWasEmpty: getFolderWasEmptyUploadValue(ctx.sessionManager.getHeader(), ctx.sessionManager.getEntries()),
+      });
+      ctx.ui.notify(result.message, result.type);
     },
   });
 }

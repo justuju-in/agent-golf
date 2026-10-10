@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp, mkdir, readFile, readdir, rm, stat, symlink, writeFile, chmod } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import { spawn } from "node:child_process";
+import { join } from "node:path";
+import { startPi } from "./rpc-helper.mjs";
 import { tmpdir } from "node:os";
 import { test } from "node:test";
 import { getApiOrigin, loginStudent } from "../login.ts";
@@ -176,68 +176,11 @@ test("real Pi login command validates and saves without model calls or session s
   const f = await fixture(t);
   const cwd = join(f.directory, "attempt");
   await mkdir(cwd);
-  const child = spawn("pi", [
-    "--mode", "rpc", "--offline", "--no-extensions", "--no-mcp", "--no-skills",
-    "--no-prompt-templates", "--no-context-files", "--extension", resolve("index.ts"),
-    "--session-dir", join(f.directory, "sessions"),
-  ], {
-    cwd,
-    env: { ...process.env, HOME: f.directory, PI_CODING_AGENT_DIR: join(f.directory, "pi-config"), PI_TELEMETRY: "0", AGENT_GOLF_API_BASE_URL: f.origin },
-    stdio: ["pipe", "pipe", "pipe"],
+  const client = startPi({
+    cwd, sessionDir: join(f.directory, "sessions"),
+    env: { HOME: f.directory, PI_CODING_AGENT_DIR: join(f.directory, "pi-config"), AGENT_GOLF_API_BASE_URL: f.origin },
   });
-  const pending = new Map();
-  const seen = [];
-  let buffer = "";
-  let stderr = "";
-  let closed = false;
-  let serial = 0;
-  const failPending = (error) => {
-    for (const request of pending.values()) {
-      clearTimeout(request.timer);
-      request.reject(error);
-    }
-    pending.clear();
-  };
-  const closePromise = new Promise((resolveClose) => {
-    child.once("close", () => {
-      closed = true;
-      failPending(new Error(`Pi closed before responding: ${stderr}`));
-      resolveClose();
-    });
-  });
-  child.on("error", failPending);
-  child.stdin.on("error", failPending);
-  child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
-  child.stdout.setEncoding("utf8");
-  child.stdout.on("data", (chunk) => {
-    buffer += chunk;
-    let boundary;
-    while ((boundary = buffer.indexOf("\n")) !== -1) {
-      const line = buffer.slice(0, boundary);
-      buffer = buffer.slice(boundary + 1);
-      if (!line.trim()) continue;
-      try {
-        const record = JSON.parse(line);
-        seen.push(record);
-        const request = pending.get(record.id);
-        if (record.type === "response" && request) {
-          clearTimeout(request.timer);
-          pending.delete(record.id);
-          if (record.success) request.resolve(record.data);
-          else request.reject(new Error("Pi command failed"));
-        }
-      } catch (error) {
-        failPending(error);
-      }
-    }
-  });
-  const request = (type, fields = {}) => new Promise((resolveRequest, reject) => {
-    if (closed) return reject(new Error("Pi already closed"));
-    const id = String(++serial);
-    const timer = setTimeout(() => { pending.delete(id); reject(new Error("Pi request timed out")); }, 15_000);
-    pending.set(id, { resolve: resolveRequest, reject, timer });
-    child.stdin.write(JSON.stringify({ id, type, ...fields }) + "\n");
-  });
+  const { request, seen } = client;
   try {
     const before = (await request("get_entries")).entries;
     assert.equal((await request("prompt", { message: `/golf-login ${KEY}` })).disposition, "handled");
@@ -255,10 +198,6 @@ test("real Pi login command validates and saves without model calls or session s
     assert.equal(JSON.stringify(seen).includes(KEY), false);
     assert.equal(JSON.stringify(seen).includes(OTHER_KEY), false);
   } finally {
-    child.stdin.end();
-    if (!closed) child.kill("SIGTERM");
-    const forceKill = setTimeout(() => { if (!closed) child.kill("SIGKILL"); }, 2_000);
-    forceKill.unref();
-    try { await closePromise; } finally { clearTimeout(forceKill); }
+    await client.close();
   }
 });

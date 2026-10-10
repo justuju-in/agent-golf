@@ -67,7 +67,7 @@ async function withTempDir(fn) {
   }
 }
 
-test("plugin registers login and preserves the submit stub", async () => {
+test("plugin registers login and submission commands", async () => {
   const commands = new Map();
   const events = new Map();
   plugin({
@@ -85,15 +85,16 @@ test("plugin registers login and preserves the submit stub", async () => {
   assert.equal(commands.has("golf-submit"), true);
 
   const notifications = [];
-  const ctx = { ui: { notify: (message, type) => notifications.push({ message, type }) } };
+  const ctx = {
+    ui: { notify: (message, type) => notifications.push({ message, type }) },
+    sessionManager: { getHeader: () => null, getEntries: () => [] },
+  };
   await commands.get("golf-login").handler("", ctx);
   await commands.get("golf-submit").handler("", ctx);
-  await commands.get("golf-submit").handler("help_me_unpack", ctx);
 
   assert.deepEqual(notifications, [
     { message: "Usage: /golf-login <key>", type: "info" },
-    { message: "Usage: /golf-submit <problem>", type: "info" },
-    { message: "Agent Golf submission is not implemented yet. Nothing was uploaded.", type: "info" },
+    { message: "Usage: /golf-submit <problem> (for example: help_me_unpack)", type: "info" },
   ]);
 });
 
