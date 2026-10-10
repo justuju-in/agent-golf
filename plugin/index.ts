@@ -1,4 +1,5 @@
 import { readdir } from "node:fs/promises";
+import { loginStudent } from "./login.ts";
 import type {
   ExtensionAPI,
   ExtensionContext,
@@ -125,15 +126,10 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("golf-login", {
-    description: "Log in to Agent Golf (not implemented yet)",
+    description: "Validate and privately save your Agent Golf student key",
     handler: async (args, ctx) => {
-      if (!args.trim()) {
-        ctx.ui.notify("Usage: /golf-login <key>", "info");
-        return;
-      }
-
-      // Never echo or persist the supplied key in this command stub.
-      ctx.ui.notify("Agent Golf login is not implemented yet. No key was saved.", "info");
+      const result = await loginStudent(args);
+      ctx.ui.notify(result.message, result.type);
     },
   });
 

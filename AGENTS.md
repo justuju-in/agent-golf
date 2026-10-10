@@ -42,7 +42,7 @@ Run the gate before every commit. When you add a component's tests, add its test
 - Do not compute tokens, prompts, or pass/fail in `plugin/`; it only uploads the raw session file. Scoring lives in `server/counter/` so other agents can be added later with just a new reader.
 - Do not change the upload/reply shape in `docs/spec.md` without telling the other two owners; three people build against it in parallel.
 - Do not commit a real Hackattic access token, a student's secret key, or a student's session log. Redact `access_token=...` in anything added to `samples/`.
-- Do not store students' secret keys in plain text; store only a SHA-256 hash.
+- Server storage must contain only SHA-256 hashes of student keys, never plaintext. The plugin may store its own credential in `~/.config/agent-golf/credentials.json`, isolated per server origin, with directory mode 0700 and file mode 0600; never in a project or session log.
 - Do not show prompts, local paths, or raw logs on public pages; only username, model, numbers and verdicts.
 - Do not let `/golf-submit` call the model; submitting must cost zero tokens.
 - Do not upgrade dependencies unless explicitly asked.

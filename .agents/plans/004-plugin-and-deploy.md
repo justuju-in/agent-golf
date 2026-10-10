@@ -12,7 +12,7 @@ updated: 2026-10-10
 
 - [ ] **Phase 1 — Plugin**
   - [x] 1.1 `plugin/index.ts` loads in Pi (`pi --extension ./plugin/index.ts`)
-  - [ ] 1.2 `/golf-login <key>`: check with `GET /api/v1/me`, save key in a private file (mode 0600)
+  - [x] 1.2 `/golf-login <key>`: check with `GET /api/v1/me`, save key in a private file (mode 0600)
   - [ ] 1.3 `/golf-submit <problem>`: confirm, upload current session file, print score and link
   - [ ] 1.4 Clear messages: no key, bad key, website unreachable
   - [x] 1.5 Optional: record at session start whether the folder was empty
@@ -43,6 +43,12 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 - Do: register `/golf-login` and `/golf-submit` with usage and explicit not-implemented notifications; no networking, credential storage, session mutations, or model calls.
 - Acceptance: isolated Pi RPC smoke test (`pi --mode rpc --offline --no-extensions --extension <absolute plugin/index.ts> --session <temporary JSONL>`, with MCP, skills, templates and context discovery disabled) passed: both commands registered; four usage/stub cases handled; zero tokens; no new session entries; disposable key and commands absent from persisted JSONL. Manual TUI check remains available via the command above.
 
+#### 1.2 Login
+- Files: `plugin/login.ts`, `plugin/index.ts`, `plugin/test/login.test.mjs`, `AGENTS.md`
+- Do: require an explicit `AGENT_GOLF_API_BASE_URL` until the live origin is agreed; permit HTTPS or loopback-only HTTP origins, reject redirects; validate via the `/me` contract before atomic local credential storage; preserve existing credentials on failure; never print response bodies, keys, or raw exceptions.
+- Storage: `~/.config/agent-golf/credentials.json`, directory 0700 and file 0600; keep separate credentials per canonical server origin. Server key storage remains hash-only.
+- Acceptance: mock-API and isolated Pi command tests exercise successful login, failures, permissions, origin isolation, secret-free output and unchanged session/model state; `bash tools/check.sh` passes. Real-server integration remains pending.
+
 #### 1.3 Submit
 - Files: `plugin/index.ts`
 - Do: get the current session file path from the session manager; show file size and problem; `ctx.ui.confirm`; POST multipart with `Authorization: Bearer <key>`; print status, reasons, metrics, link.
@@ -72,6 +78,8 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 
 - Step 1.5 review-fix checkpoint (2026-10-10): `bash tools/check.sh` → `gate: ok` with 16 tests passed, including real CLI reopening of a bash-only session as `unknown`; `git diff --check` passed.
 
+- Step 1.2 checkpoint (2026-10-10 20:42 IST): `bash tools/check.sh` → `gate: ok`, all 26 tests passed; `git diff --check` passed. Mock API and real Pi command verified login without model activity or session secrets; real-server integration pending.
+
 ## Decisions
 
 | Decision | Rationale | Rejected alternative |
@@ -80,6 +88,9 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 | Start with command-only stubs | Validates loading and zero-token dispatch independently of the unavailable server | Implement unvalidated key storage or upload before API agreement |
 | Folder observation is custom session metadata | `pi.appendEntry()` persists extension state outside model context and survives normal session continuation | Custom messages, external files, watchers, signatures, or upload-time rescans |
 | Be conservative for inherited/forked sessions | Pi marks forks/clones with `parentSession`; copied metadata must not become a fresh-attempt certificate | Trust copied `empty` metadata in a forked session |
+| Explicit API origin until production address is agreed | Avoid sending credentials to an assumed host; localhost:8000 is a manual development convention | Hardcoded provisional production default |
+| Permission-protected local credentials, isolated per origin | Approved MVP storage lets the plugin authenticate without conflating test/live keys; server still stores only hashes | OS keychain dependency or unusable client-side hash-only storage |
+| Refuse credential-validation redirects | Do not forward keys to an unexpected destination | Automatically follow server redirects |
 
 ## Changelog
 
@@ -87,3 +98,5 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 - 2026-10-10 — Prateek owns plan 004; step 1.1 implemented and approved for commit. Login API response and server-origin configuration still need agreement with the website owner.
 - 2026-10-10 — Step 1.5 implemented on `feature/golf-folder-check` for later integration into `feature/plan-004`; automated plugin tests added to the gate.
 - 2026-10-10 — Review fixes approved: reject prior non-initialization activity, use public Pi type exports, and isolate/harden subprocess tests. `/me` contract is agreed on main; production origin remains unresolved.
+- 2026-10-10 — Step 1.2 reviewed and approved: login validates `/me` before private atomic per-origin storage; redirects refused; 26-test mock/Pi coverage. Real-server integration is pending. Writes are serialized within one Pi process only. No model calls, session secrets, or upload implementation added.
+- Next: integrate newer main commits `d412128` (upload response contract) and `278dc35` (branch status in plans, Python 3.12 gate), then implement step 1.3 against a mock. Production origin remains unresolved; HANDOFF.md is not updated for this branch checkpoint.
