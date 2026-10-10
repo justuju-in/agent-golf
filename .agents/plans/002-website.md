@@ -1,7 +1,7 @@
 ---
 name: 002-website
-description: Registration, upload API, leaderboard and submission pages in server/.
-status: created
+description: Registration, key check, upload and problem-list API, leaderboard pages, Docker and deployment in server/ (never server/counter/).
+status: started
 created: 2026-10-10
 updated: 2026-10-10
 ---
@@ -10,76 +10,133 @@ updated: 2026-10-10
 
 ## Progress
 
-- [ ] **Phase 1 — Accounts and upload**
-  - [ ] 1.1 Pick the stack and add its test command to `tools/check.sh`
-  - [ ] 1.2 Register page: username + Hackattic username → show secret key once
-  - [ ] 1.3 `GET /api/v1/me` checks a key (used by `/golf-login`)
-  - [ ] 1.4 `POST /api/v1/submissions` per `docs/spec.md`: check key, store file, call counter, store result
-- [ ] **Phase 2 — Pages**
-  - [ ] 2.1 Leaderboard: one board per problem, ranked rows first, unranked below with reasons
-  - [ ] 2.2 Submission page: username, model, numbers, solved; never prompts or raw log
-- [ ] **Phase 3 — Docker and deployment** (moved here from plan 004)
-  - [ ] 3.1 `server/Dockerfile`: one image with the website and the counter
-  - [ ] 3.2 Database and uploads in a mounted volume; survive a container restart
-  - [ ] 3.3 Deploy with HTTPS at agent-golf.arnav.tech (Arnav points the domain)
-  - [ ] 3.4 Keys and uploads never appear in server logs
-- [ ] **Phase 4 — Verification and handoff**
-  - [ ] 4.1 Upload each file in `samples/` with a test key; rows appear correctly
-  - [ ] 4.2 Tell Prateek the live URL so the plugin defaults to it
-  - [ ] 4.3 Gate passes; tick this plan and add to its Changelog (`HANDOFF.md` only when merging to `main`)
+- [ ] **Phase 1 — Agreements**
+  - [x] 1.1 Contract and process on `main`: upload status codes, reason codes, counter return and `NotPiLogError`, HANDOFF rule, gate on Python 3.12 (`d412128`, `278dc35`)
+  - [x] 1.2 Second round on `main`: per-problem setup and problem config, problem list contract, generic "solved" check, usage reason codes, `agent-golf.justuju.in` (`d32ff18`, `d5062d5`)
+- [ ] **Phase 2 — API, against a stand-in counter**
+  - [ ] 2.1 Stack skeleton (FastAPI, Jinja, SQLite, Python 3.12, pinned `server/requirements.txt`) and `GET /api/v1/me` exactly per `docs/spec.md`
+  - [ ] 2.2 Register page → key page: username + Hackattic username, key shown once, only its SHA-256 stored
+  - [ ] 2.3 Stand-in counter in `server/` (never `server/counter/`): the spec's `score()`, `NotPiLogError` and reason sets; gives ranked and unranked results
+  - [ ] 2.4 Problem config, then `POST /api/v1/submissions` per `docs/spec.md`: checks, store file, call counter with the problem's setup, store result, reply
+  - [ ] 2.5 `GET /api/v1/problems` per `docs/spec.md`, built from the problem config
+- [ ] **Phase 3 — Pages**
+  - [ ] 3.1 Board per problem: ranked rows, then unranked players; 30-second refresh; projector-size text
+  - [ ] 3.2 Submission page: username, model, numbers, solved, reasons; never prompts, folders or raw log
+  - [ ] 3.3 Rules page: the seven rules, each problem's instructions and setup, scoring, install and submit steps
+- [ ] **Phase 4 — Real counter** (after Amit merges `counter` to `main`)
+  - [ ] 4.1 Bring `main` into this branch; import from `server.counter`; delete the stand-in
+  - [ ] 4.2 Upload each file in `samples/` with a test key; rows and verdicts match `samples/README.md`
+- [ ] **Phase 5 — Docker and deployment at agent-golf.justuju.in**
+  - [ ] 5.1 `server/Dockerfile`: one image with the website and the counter
+  - [ ] 5.2 Database and uploads in a mounted volume; survive a container restart
+  - [ ] 5.3 Merge `feature/plan-002` to `main`; update `.agents/HANDOFF.md` in that merge
+  - [ ] 5.4 Deploy with HTTPS at agent-golf.justuju.in; confirm a 19 MB upload reaches the app
+  - [ ] 5.5 Keys and uploads never appear in server or proxy logs
+- [ ] **Phase 6 — Verification and handoff**
+  - [ ] 6.1 Upload each file in `samples/` to the live site with a test key; rows appear correctly
+  - [ ] 6.2 Tell Prateek the live site is up, so the plugin's default `AGENT_GOLF_API_BASE_URL` works
+  - [ ] 6.3 Gate passes; tick this plan and add to its Changelog
 
 ## Goal
 
-Students can register, upload, and see the board. Done when uploading `samples/pass.jsonl` with a valid key shows a ranked row.
+Students can register, upload, and see the board. Done when uploading `samples/pass.jsonl` with a valid key shows a ranked row on the live site.
 
 ## Context
 
-- Contract and rules: `docs/spec.md` (do not change without telling the others).
-- Counter: `server/counter/` (plan 003). Until it lands, call a stub that returns fixed numbers in the spec's shape.
-- Suggested stack (change in 1.1 if you prefer): Python + FastAPI + SQLite; plain server-rendered HTML.
+- Contract and rules: `docs/spec.md`. "Contract: student key validation" is Prateek's and fixed; the rest was agreed in 1.1 and 1.2. Change none of it without telling the other two.
+- Counter: `server/counter/` is Amit's (branch `counter`, plan 003); never create or edit files there. Until it merges, the website calls the stand-in from 2.3, which has the same names (`score`, `NotPiLogError`, `UNRANKING_REASONS`, `WARNING_REASONS`); 4.1 swaps the import. "Solved" is one generic check inside the counter, so the website never needs per-problem scoring code.
+- Problem config (`server/`, from 2.4): one entry per Hackattic problem with slug, title, Hackattic URL, instructions, model and thinking level, plus the rules text and `rules_version`. It is the single source for the problem list, the `unknown_problem` check, the `agreed` setup sent to the counter, and the board and rules pages. Adding a problem means adding an entry. `help_me_unpack`'s model and thinking level come from Step 0 (plan 001); until then it is not listed.
+- Plugin: Prateek (plan 004) reads the server origin from `AGENT_GOLF_API_BASE_URL` (`http://localhost:8000` locally, `https://agent-golf.justuju.in` live). The website reads the same variable to build the absolute `url` in replies.
+- Data: SQLite database and uploaded logs live in `AGENT_GOLF_DATA_DIR` (default `server/data/`, ignored by `server/.gitignore`; `/data` in Docker). Review notes from workflows land in `server/.agents-review/`, ignored by the root `.gitignore`.
+- Local setup: `uv venv --python 3.12 && uv pip install -r server/requirements.txt`; run `.venv/bin/uvicorn server.app:app --port 8000`. `server/README.md` keeps the exact commands.
+- Look: plain, light, server-rendered pages; text `#272426`, accent `#c46c34`. JavaScript only for the copy button; the board reloads with a meta refresh.
+- Public pages show only username, model, numbers and verdicts: never prompts, folder paths, raw logs, keys or Hackattic usernames.
+- `metrics.total_tokens` is `null` when the counter sets `missing_usage` (unranked); pages show "unknown" for it.
+- Upload size: Starlette (under FastAPI) caps non-file multipart fields at 1 MB by default, so read `session` as a file part and enforce 20 MB ourselves; check against the pinned version. The proxy in 5.4 must allow a little over 20 MB per request (nginx defaults to 1 MB), or students hit the proxy's error first.
 
 ## Steps
 
-### Phase 1 — Accounts and upload
+### Phase 2 — API, against a stand-in counter
 
-#### 1.2 Register
+#### 2.1 Stack and key check
+- Files: `server/requirements.txt`, `server/app.py` and modules beside it, `server/tests/`, `server/README.md`, `server/.gitignore`, `server/__init__.py` (make it identical to the one on Amit's `counter` branch so the two merge cleanly)
+- Do: FastAPI app; SQLite users table (username, Hackattic username, key SHA-256, created time); exact-pinned requirements; `GET /api/v1/me` exactly per "Contract: student key validation" (200 `{"username": …}`, 401 otherwise, `Cache-Control: no-store` on both); keys parsed as UUIDs, then hashed; unittest tests with FastAPI's `TestClient`.
+- Acceptance: `bash tools/check.sh` runs the new tests and passes; with the server on port 8000, `curl` with no key, a bad key and a valid key gives 401, 401, 200, each with `Cache-Control: no-store`; the key appears in neither the database nor the server output.
+
+#### 2.2 Register
 - Files: `server/`
-- Do: username `[a-z0-9_]{3,32}` unique (lowercased); key = random UUID; store only SHA-256(key); 409 on duplicate username.
-- Acceptance: registering twice with the same name fails; the key never appears in the database or logs.
+- Do: form with username (`[a-z0-9_]{3,32}`, lowercased, unique) and Hackattic username (required, trimmed, at most 64 characters; `create_user` from 2.1 does not check it yet); inline errors for a taken (409) or badly formed name; key = random UUID; store only SHA-256(key). The POST response is the key page itself (no redirect, no key in any URL, `Cache-Control: no-store`): key in large type, copy button, "save it now, there is no recovery", and `/golf-login <key>` ready to paste.
+- Acceptance: registering the same name twice fails; the key never appears in the database, logs or any URL; the new key passes `GET /api/v1/me`.
 
-#### 1.4 Upload
-- Files: `server/`
-- Do: bearer key → user; reject non-JSONL or oversized files (limit 20 MB); same Pi session id from the same user replaces the earlier row; identical file returns the existing entry.
-- Acceptance: test uploads of `samples/*.jsonl` return the reply shape in `docs/spec.md`.
+#### 2.3 Stand-in counter
+- Files: `server/standin_counter.py` and its tests (both deleted in 4.1)
+- Do: `score(session_text, problem, agreed, prior_folders)`, `NotPiLogError`, `UNRANKING_REASONS` and `WARNING_REASONS` as in "Contract: counter"; `session_id` and `cwd` from the header line when present; deterministic made-up metrics from the file hash; some files ranked, some unranked with reasons, one case with `missing_usage` and `total_tokens: null`; `folder_reused` when `cwd` is in `prior_folders`; `NotPiLogError` for text that is not JSON lines.
+- Acceptance: tests show a ranked result, an unranked one with reasons, `missing_usage` with a null total, `folder_reused`, and `NotPiLogError`.
 
-### Phase 2 — Pages
+#### 2.4 Problem config and upload
+- Files: `server/` (problem config module, upload route, tests)
+- Do:
+  - Problem config as in Context; `help_me_unpack` entry first, with its setup marked unset until Step 0 picks it.
+  - Rejections per the spec: unknown or missing key → 401 `bad_key`; problem not in the config → 400 `unknown_problem`; `session` over 20 MB → 413 `file_too_large`; missing `session` or not UTF-8 → 400 `not_pi_log`; counter's `NotPiLogError` → 400 `not_pi_log`; any other counter exception → 500.
+  - Identical file (SHA-256) from the same user returns the existing entry. Call the counter once with no folders to learn `session_id` and `cwd`, then again with `prior_folders` = the user's other sessions' folders, both times with `agreed` from the problem's config entry. Same `session_id` from the same user replaces the earlier row and file.
+  - Store `folder_was_empty` (no ranking effect); set `status` from `UNRANKING_REASONS`; reply per the spec, `url` from `AGENT_GOLF_API_BASE_URL`.
+- Acceptance: tests cover every status code and reason above, replacement and identical-file dedupe; a `curl -F` upload to the local server returns the spec's body.
 
-#### 2.1 Leaderboard
-- Files: `server/`
-- Do: sort ranked rows by `(total_tokens, prompts, chars_typed)`; equal scores share a rank; each student shows only their best ranked session.
-- Acceptance: with the three samples uploaded, only `pass` and `script` are ranked.
+#### 2.5 Problem list
+- Files: `server/` (route, tests)
+- Do: `GET /api/v1/problems` exactly per "Contract: problem list": public, built from the problem config, lists only problems whose model and thinking level are set, keeps the safety limits (plain text, 64 KB body, 1,000 characters per string, `challenge_url` = `https://hackattic.com/challenges/<slug>`).
+- Acceptance: tests cover the populated and empty lists and the limits; `curl http://localhost:8000/api/v1/problems` needs no key.
 
-### Phase 3 — Docker and deployment
+### Phase 3 — Pages
 
-#### 3.1 Dockerfile
+#### 3.1 Board
+- Files: `server/` templates
+- Do: one board per problem at `/problems/<slug>`; the home page shows the first listed problem's board and links the others. Header: problem title, its model and thinking level, the scoring line. Ranked rows sorted by `(total_tokens, prompts, chars_typed)`, equal scores share a rank, each player only their best ranked session; columns rank, player, tokens, prompts, chars, tool calls, submitted (no model column). Below, "Unranked": each player's latest unranked attempt, only if that player has no ranked row, with reasons in plain English. Footer: install → `/golf-login` → solve → `/golf-submit`. Meta refresh every 30 s; text sized for a projector.
+- Acceptance: with the stand-in, mixed uploads show ranked rows in order and only the allowed unranked rows; the page reloads itself every 30 s.
+
+#### 3.2 Submission page
+- Files: `server/` templates
+- Do: `/submissions/<id>`: Ranked #N or Unranked, the four numbers large ("unknown" for a null total), model and thinking level, solved yes/no, reasons in plain English (warnings marked as such), submitted time.
+- Acceptance: the `url` in an upload reply opens this page; its HTML contains no prompt text, `cwd` or Hackattic username.
+
+#### 3.3 Rules page
+- Files: `server/` templates
+- Do: the rules text from the problem config (mirrors `docs/spec.md`), each listed problem's title, Hackattic link, instructions, model and thinking level, the scoring line, and install, login and submit steps (install command from plan 004 once Prateek publishes it).
+- Acceptance: linked from every page's header; shows the same problems and setups as `GET /api/v1/problems`.
+
+### Phase 4 — Real counter
+
+#### 4.1 Swap
+- Files: `server/` (one import); delete `server/standin_counter.py` and its tests
+- Do: after `counter` merges, bring `main` into this branch; `from server.counter import score, NotPiLogError, UNRANKING_REASONS, WARNING_REASONS`.
+- Acceptance: the gate passes with both the counter's and the website's tests.
+
+### Phase 5 — Docker and deployment
+
+#### 5.1 Dockerfile
 - Files: `server/Dockerfile`, `server/.dockerignore`
-- Do: copy the whole `server/` folder (so `server/counter/` is always included); install from a pinned requirements file; run as a non-root user; one port.
+- Do: Python 3.12 slim base; copy the whole `server/` folder to `/app/server` so `server.counter` imports work as in the repo; install from the pinned requirements; run as a non-root user; one port (8000).
 - Acceptance: `docker build -t agent-golf server/ && docker run -p 8000:8000 -v agent-golf-data:/data agent-golf` serves the register page locally.
 
-#### 3.2 Persistent data
+#### 5.2 Persistent data
 - Files: `server/` config
-- Do: database file and uploaded logs live under `/data` (a Docker volume), never inside the image.
+- Do: `AGENT_GOLF_DATA_DIR=/data` in the image; database file and uploaded logs live in the volume, never inside the image.
 - Acceptance: register a user, restart the container, the user and their submissions are still there.
 
-#### 3.3 Deploy
+#### 5.4 Deploy
 - Files: deployment notes in `server/README.md`
-- Do: deploy the container to a host of your choice; HTTPS before any key is issued; use the host's real DNS target, do not guess it.
-- Acceptance: `https://agent-golf.arnav.tech/` loads and registration works.
+- Do: Justuju server or a small VPS (any Docker host with a persistent volume and HTTPS); HTTPS before any key is issued; point `agent-golf.justuju.in` at the host's real DNS target, do not guess it; set `AGENT_GOLF_API_BASE_URL=https://agent-golf.justuju.in`; the proxy allows a little over 20 MB per request.
+- Acceptance: `https://agent-golf.justuju.in/` loads, registration works, and a 19 MB upload reaches the app (it answers with the app's own JSON, not a proxy error page).
+
+#### 5.5 No keys or uploads in logs
+- Files: `server/` run config, proxy config
+- Do: uvicorn's access log prints query strings, so a key a student wrongly puts in `?key=` is logged even though it is rejected: turn the access log off or strip query strings, in the proxy too. Keep FastAPI's telemetry export off (its redaction does not cover `key`).
+- Acceptance: after a login, an upload and a `GET /api/v1/me?key=<key>` against the live site, searching the server and proxy logs for that key finds nothing.
 
 ## Validation
 
 - `bash tools/check.sh` passes.
-- Register → upload → leaderboard works locally with the sample logs.
+- Register → upload → board works locally with the sample logs.
 - The same works on the live site, from the Docker container.
 
 ## Decisions
@@ -88,8 +145,24 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 |---|---|---|
 | Store only key hashes | A leaked database does not leak keys | Plain-text keys |
 | Website owner also deploys, using Docker | One person owns the server end to end; the counter ships inside the same image | Separate deploy owner (was plan 004) |
+| FastAPI + Jinja + SQLite on Python 3.12 (uv), exact-pinned `server/requirements.txt` | Small, server-rendered, one process and one database file; matches CI | Django; a JavaScript front end |
+| Model and thinking level per problem, in one website problem config (slug, title, Hackattic URL, instructions, model, thinking level) | Several Hackattic problems this week, possibly with different setups; one source feeds the problem list, `unknown_problem`, `agreed` and the pages | One global setup in the spec |
+| Pages: board, register, key page, submission, rules | Smallest set for tonight; admin work uses the SQLite command line | Player page; admin page |
+| Home page = first listed problem's board, with links to the others | One obvious board for the projector; more problems need no new page | A problem index page |
+| Board: no model column; unranked shows each player's latest attempt, only if they have no ranked row | The model is the same for every ranked row; keeps the projector board short | Model column; every unranked attempt |
+| Projector: meta refresh every 30 s, larger text | The board is shown in the room; no JavaScript needed | Manual refresh; live updates |
+| Plain light pages, `#272426` text, `#c46c34` accent | No time for Claude Design today | Claude Design mock first |
+| Stand-in counter in `server/`, swapped in 4.1 | The website ships before the counter; `server/counter/` is Amit's | Waiting for the real counter |
+| Only `NotPiLogError` means `not_pi_log`; any other counter exception is a 500 | A counter bug must not look like a bad file | Catching a bare `ValueError` |
+| `status` from the counter's `UNRANKING_REASONS` | One list of unranking codes, in the counter | A second copy of the list in the website |
+| Two counter calls per upload (learn `session_id`, then score with `prior_folders`) | Keeps all Pi parsing inside the counter | Website parses the session header itself |
+| `folder_was_empty` stored, not scored | Agreed with the team; no reason code | Warning code |
+| Identical files deduplicated per user | Trusted students; the stored fingerprint still reveals cross-user copies | Rejecting cross-user duplicates |
+| Branch `feature/plan-002` | Matches plan 004's branch and the planning skill | `website` |
 
 ## Changelog
 
 - 2026-10-10 — created
 - 2026-10-10 — Anup owns this plan; Docker and website deployment added (moved from plan 004)
+- 2026-10-10 — 1.1 done on `main` (`d412128`, `278dc35`). Restructured: agreements, API against a stand-in counter, pages, real-counter swap, Docker and deploy; stack, page and board decisions recorded
+- 2026-10-10 — Added 1.2 (second spec round, done on `main` as `d32ff18`, `d5062d5`) and 2.5 (`GET /api/v1/problems`); per-problem setup in a website problem config; domain is `agent-golf.justuju.in`; deploy must pass a 19 MB upload
