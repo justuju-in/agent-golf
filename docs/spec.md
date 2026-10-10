@@ -43,6 +43,24 @@ Rank sessions that are solved and pass every rule check by fewest total tokens; 
 
 Field names come from https://pi.dev/docs/latest/session-format — verify against `samples/` before relying on them.
 
+## Contract: student key validation
+
+`GET /api/v1/me` (used by `/golf-login`; no request body)
+
+- Header: `Authorization: Bearer <student key>` (never in the URL).
+- Valid credentials: HTTP `200`, `Content-Type: application/json`, body:
+
+```json
+{"username": "<registered username>"}
+```
+
+- Missing, malformed, or invalid credentials: HTTP `401`. The error body is unspecified; the plugin must not depend on its shape or text.
+- Responses include `Cache-Control: no-store`. Never echo the student key in responses or include it in logs.
+- The plugin saves the supplied key only after a valid success response. Network failures and other HTTP statuses are not proof of an invalid key and must not cause the supplied key to be saved. A failed login must preserve any existing saved credentials.
+- The production origin remains to be agreed and is configured separately from this endpoint contract. Local testing may use a configured localhost origin; no local port is mandated by the API.
+
+This section defines key validation only; it does not define submission failure status codes or error bodies.
+
 ## Contract: plugin → website
 
 `POST /api/v1/submissions` (multipart)
