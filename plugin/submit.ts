@@ -14,8 +14,8 @@ export interface SubmitOptions {
 type SubmitContext = Pick<ExtensionContext, "ui" | "hasUI" | "isIdle" | "sessionManager">;
 
 const REASONS = new Set([
-  "not_solved", "answer_mismatch", "model_mismatch", "thinking_level_mismatch", "folder_reused",
-  "custom_setup", "inconsistent_log", "bad_key", "not_pi_log", "unknown_problem", "file_too_large",
+  "not_solved", "model_mismatch", "thinking_level_mismatch", "model_switched", "folder_reused", "missing_usage",
+  "custom_setup", "inconsistent_log", "usage_not_recorded", "bad_key", "not_pi_log", "unknown_problem", "file_too_large",
 ]);
 
 function error(message: string): LoginResult {
@@ -36,7 +36,11 @@ function formatReply(value: unknown, httpStatus: number, key: string): LoginResu
   if (data.status !== "ranked" && data.status !== "unranked") return undefined;
   if (!data.metrics || typeof data.metrics !== "object" || typeof data.url !== "string") return undefined;
   const metrics = data.metrics as Record<string, unknown>;
+  const unknownTokens = data.reasons.includes("missing_usage");
+  // Validate the contract's null/reason pair, not the score or ranking verdict.
+  if (unknownTokens !== (metrics.total_tokens === null)) return undefined;
   for (const name of ["total_tokens", "prompts", "chars_typed", "tool_calls"]) {
+    if (name === "total_tokens" && unknownTokens) continue;
     if (typeof metrics[name] !== "number" || !Number.isSafeInteger(metrics[name]) || metrics[name] < 0) return undefined;
   }
   for (const name of ["models", "thinking_levels"]) {
@@ -53,7 +57,7 @@ function formatReply(value: unknown, httpStatus: number, key: string): LoginResu
   }
   const message = [
     `Submission ${data.status}. Reasons: ${reasons}.`,
-    `Tokens: ${metrics.total_tokens}; prompts: ${metrics.prompts}; characters: ${metrics.chars_typed}; tool calls: ${metrics.tool_calls}; solved: ${metrics.solved}.`,
+    `Tokens: ${unknownTokens ? "unknown" : metrics.total_tokens}; prompts: ${metrics.prompts}; characters: ${metrics.chars_typed}; tool calls: ${metrics.tool_calls}; solved: ${metrics.solved}.`,
     `Models: ${(metrics.models as string[]).join(", ")}; thinking levels: ${(metrics.thinking_levels as string[]).join(", ")}.`,
     url.href,
   ].join("\n");

@@ -195,6 +195,98 @@ test("unranked and ranked-with-warning replies display server status and metrics
   }
 });
 
+test("missing_usage displays unknown tokens and the server's unranked status", async (t) => {
+  const f = await fixture(t);
+  f.respond(200, { ...f.ranked, status: "unranked", reasons: ["missing_usage"], metrics: { ...METRICS, total_tokens: null } });
+  const before = await readFile(join(f.credentialDir, "credentials.json"));
+  const result = await submitSession("help_me_unpack", f.ctx, f.options);
+  assert.equal(result.type, "info");
+  assert.match(result.message, /Submission unranked\. Reasons: missing_usage/);
+  assert.match(result.message, /Tokens: unknown; prompts: 2/);
+  assert.equal(/Tokens: (0|null)/.test(result.message), false);
+  secretFree(result);
+  assert.equal(f.requests.length, 1);
+  assert.deepEqual(f.requests[0].bytes, BYTES);
+  assert.deepEqual(await readFile(f.sessionFile), BYTES);
+  assert.deepEqual(await readFile(join(f.credentialDir, "credentials.json")), before);
+});
+
+for (const total of [0, 42]) {
+  test(`usage_not_recorded keeps the server's ranked status and recorded total ${total}`, async (t) => {
+    const f = await fixture(t);
+    f.respond(200, { ...f.ranked, reasons: ["usage_not_recorded"], metrics: { ...METRICS, total_tokens: total } });
+    const result = await submitSession("help_me_unpack", f.ctx, f.options);
+    assert.equal(result.type, "info");
+    assert.match(result.message, /Submission ranked\. Reasons: usage_not_recorded/);
+    assert.ok(result.message.includes(`Tokens: ${total};`));
+    secretFree(result);
+  });
+}
+
+test("model_switched displays the server's multiple models and verdict unchanged", async (t) => {
+  const f = await fixture(t);
+  f.respond(200, { ...f.ranked, status: "unranked", reasons: ["model_switched"], metrics: { ...METRICS, models: ["provider/first", "provider/second"] } });
+  const result = await submitSession("help_me_unpack", f.ctx, f.options);
+  assert.equal(result.type, "info");
+  assert.match(result.message, /Submission unranked\. Reasons: model_switched/);
+  assert.match(result.message, /Models: provider\/first, provider\/second/);
+  assert.match(result.message, /Tokens: 42/);
+  secretFree(result);
+});
+
+test("new unranking and warning codes may coexist without client-side rescoring", async (t) => {
+  const f = await fixture(t);
+  f.respond(200, { ...f.ranked, status: "unranked", reasons: ["missing_usage", "usage_not_recorded", "model_switched"], metrics: { ...METRICS, total_tokens: null, models: ["provider/first", "provider/second"] } });
+  const result = await submitSession("help_me_unpack", f.ctx, f.options);
+  assert.equal(result.type, "info");
+  assert.match(result.message, /Submission unranked\. Reasons: missing_usage, usage_not_recorded, model_switched/);
+  assert.match(result.message, /Tokens: unknown/);
+  secretFree(result);
+});
+
+test("null token totals must match missing_usage; other metrics remain integers", async (t) => {
+  const f = await fixture(t);
+  for (const [reasons, metrics] of [
+    [[], { ...METRICS, total_tokens: null }],
+    [["not_solved"], { ...METRICS, total_tokens: null }],
+    [["usage_not_recorded"], { ...METRICS, total_tokens: null }],
+    [["missing_usage"], METRICS],
+    [["missing_usage"], { ...METRICS, total_tokens: undefined }],
+    [["missing_usage"], { ...METRICS, total_tokens: null, prompts: null }],
+    [["missing_usage"], { ...METRICS, total_tokens: null, tool_calls: -1 }],
+    [["missing_usage"], { ...METRICS, total_tokens: null, chars_typed: 0.5 }],
+    [[], { ...METRICS, total_tokens: "0" }],
+  ]) {
+    f.respond(200, { ...f.ranked, status: "unranked", reasons, metrics });
+    const result = await submitSession("help_me_unpack", f.ctx, f.options);
+    assert.equal(result.type, "error");
+    assert.match(result.message, /invalid submission response/);
+    secretFree(result);
+  }
+  assert.equal(f.requests.length, 9, "one request per call, without automatic retry");
+});
+
+test("removed answer_mismatch reason is rejected without displaying the body", async (t) => {
+  const f = await fixture(t);
+  f.respond(200, { ...f.ranked, status: "unranked", reasons: ["answer_mismatch"] });
+  const result = await submitSession("help_me_unpack", f.ctx, f.options);
+  assert.equal(result.type, "error");
+  assert.match(result.message, /invalid submission response/);
+  assert.equal(result.message.includes("answer_mismatch"), false);
+  secretFree(result);
+});
+
+test("new counter codes are not accepted as website rejection codes", async (t) => {
+  const f = await fixture(t);
+  for (const [status, reason] of [[401, "missing_usage"], [400, "model_switched"], [413, "usage_not_recorded"]]) {
+    f.respond(status, { status: "rejected", reasons: [reason], metrics: null, url: null });
+    const result = await submitSession("help_me_unpack", f.ctx, f.options);
+    assert.equal(result.type, "error");
+    assert.match(result.message, /invalid submission response/);
+    secretFree(result);
+  }
+});
+
 for (const [status, reason] of [[401, "bad_key"], [400, "not_pi_log"], [400, "unknown_problem"], [413, "file_too_large"]]) {
   test(`HTTP ${status} rejected reply displays ${reason} without altering credentials`, async (t) => {
     const f = await fixture(t);
@@ -256,9 +348,16 @@ test("timeout and unreachable server warn about uncertain delivery and do not re
   assert.equal(f.requests.length, 1);
 });
 
-for (const confirmed of [false, true]) {
-  test(`real Pi submission confirmation=${confirmed}: no model activity or session mutation`, async (t) => {
+for (const [confirmed, status, reasons, total] of [
+  [false, "ranked", [], 42],
+  [true, "ranked", [], 42],
+  [true, "unranked", ["missing_usage"], null],
+  [true, "ranked", ["usage_not_recorded"], 42],
+  [true, "unranked", ["model_switched"], 42],
+]) {
+  test(`real Pi submission confirmation=${confirmed}, reasons=${reasons.join(",") || "none"}: no model activity or session mutation`, async (t) => {
     const f = await fixture(t);
+    f.respond(200, { ...f.ranked, status, reasons, metrics: { ...METRICS, total_tokens: total, models: reasons.includes("model_switched") ? ["provider/first", "provider/second"] : METRICS.models } });
     await loginStudent(KEY, { ...f.options, credentialDir: join(f.directory, ".config", "agent-golf") });
     const timestamp = new Date().toISOString();
     const seed = [
@@ -293,7 +392,12 @@ for (const confirmed of [false, true]) {
       assert.equal((await client.request("get_session_stats")).tokens.total, 0);
       assert.equal(client.seen.some((record) => record.type === "agent_start" || record.type === "message_start"), false);
       assert.equal(JSON.stringify(client.seen).includes(KEY), false);
-      assert.equal(client.seen.some((record) => record.method === "notify" && record.message.includes(confirmed ? "Submission ranked" : "cancelled")), true);
+      const notifications = client.seen.filter((record) => record.method === "notify");
+      assert.equal(notifications.some((record) => record.message.includes(confirmed ? `Submission ${status}` : "cancelled")), true);
+      if (confirmed) {
+        assert.equal(notifications.some((record) => record.message.includes(`Tokens: ${total === null ? "unknown" : total};`)), true);
+        assert.ok(reasons.every((reason) => notifications.some((record) => record.message.includes(reason))));
+      }
     } finally {
       await client.close();
     }
