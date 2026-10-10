@@ -1,0 +1,66 @@
+---
+name: 004-plugin-and-deploy
+description: Pi extension with /golf-login and /golf-submit in plugin/, then deploy the website to agent-golf.arnav.tech.
+status: created
+created: 2026-10-10
+updated: 2026-10-10
+---
+
+# Pi plugin and going live
+
+## Progress
+
+- [ ] **Phase 1 — Plugin**
+  - [ ] 1.1 `plugin/index.ts` loads in Pi (`pi --extension ./plugin/index.ts`)
+  - [ ] 1.2 `/golf-login <key>`: check with `GET /api/v1/me`, save key in a private file (mode 0600)
+  - [ ] 1.3 `/golf-submit <problem>`: confirm, upload current session file, print score and link
+  - [ ] 1.4 Clear messages: no key, bad key, website unreachable
+  - [ ] 1.5 Optional: record at session start whether the folder was empty
+- [ ] **Phase 2 — Go live**
+  - [ ] 2.1 Deploy `server/` with HTTPS at agent-golf.arnav.tech (Arnav points the domain)
+  - [ ] 2.2 Keys and uploads never appear in server logs
+  - [ ] 2.3 `plugin/README.md`: three-line install steps for students
+- [ ] **Phase 3 — Verification and handoff**
+  - [ ] 3.1 End-to-end from a fresh laptop: install → login → solve → submit → row on live board
+  - [ ] 3.2 Gate passes; update `.agents/HANDOFF.md`
+
+## Goal
+
+A student never leaves Pi to submit. Done when `/golf-submit` from a fresh install puts a row on the live leaderboard.
+
+## Context
+
+- Pi extensions: https://pi.dev/docs/latest/extensions — `pi.registerCommand(name, {description, handler})`; the handler gets `ctx` with `ctx.sessionManager`, `ctx.ui.notify`, `ctx.ui.confirm`, `ctx.cwd`.
+- Contract: `docs/spec.md`. The plugin sends the raw file only; it never computes scores.
+- Never call the model from the plugin: submitting must cost zero tokens.
+
+## Steps
+
+### Phase 1 — Plugin
+
+#### 1.3 Submit
+- Files: `plugin/index.ts`
+- Do: get the current session file path from the session manager; show file size and problem; `ctx.ui.confirm`; POST multipart with `Authorization: Bearer <key>`; print status, reasons, metrics, link.
+- Acceptance: submitting a finished session against a local server returns the reply shape in `docs/spec.md`.
+
+### Phase 2 — Go live
+
+#### 2.1 Deploy
+- Files: deployment config in `server/` (provider of your choice)
+- Do: HTTPS before any key is issued; use the provider's real DNS target, do not guess it.
+- Acceptance: `https://agent-golf.arnav.tech/` loads and registration works.
+
+## Validation
+
+- End-to-end test passes for all three team members.
+- `bash tools/check.sh` passes.
+
+## Decisions
+
+| Decision | Rationale | Rejected alternative |
+|---|---|---|
+| Pi plugin, not a CLI | Knows the current session; student stays in Pi | Separate CLI that scans session folders |
+
+## Changelog
+
+- 2026-10-10 — created
