@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Submission by {{ submission.username }}{% endblock %}
+
+{% block main %}
+{%- set metrics = submission.metrics %}
+    <h1>Submission by {{ submission.username }}</h1>
+    <p class="standing">
+      {%- if rank %}Ranked #{{ rank }}
+      {%- elif submission.status == "ranked" %}Ranked (not your best attempt)
+      {%- else %}Unranked
+      {%- endif -%}
+    </p>
+    <dl class="numbers">
+      <div><dt>Tokens</dt><dd>{{ pages.number(metrics.total_tokens) }}</dd></div>
+      <div><dt>Prompts</dt><dd>{{ pages.number(metrics.prompts) }}</dd></div>
+      <div><dt>Characters</dt><dd>{{ pages.number(metrics.chars_typed) }}</dd></div>
+      <div><dt>Tool calls</dt><dd>{{ pages.number(metrics.tool_calls) }}</dd></div>
+    </dl>
+    <dl class="facts">
+      <dt>Problem</dt>
+      <dd>
+        {%- if problem %}<a href="/problems/{{ problem.slug }}">{{ problem.title }}</a>
+        {%- else %}{{ submission.problem }}
+        {%- endif -%}
+      </dd>
+      <dt>{{ "Models" if metrics.models | length > 1 else "Model" }}</dt>
+      <dd>{{ pages.names(metrics.models) }}</dd>
+      <dt>{{ "Thinking levels" if metrics.thinking_levels | length > 1 else "Thinking level" }}</dt>
+      <dd>{{ pages.names(metrics.thinking_levels) }}</dd>
+      <dt>Solved</dt>
+      <dd>{{ "Yes" if metrics.solved else "No" }}</dd>
+      <dt>Submitted</dt>
+      <dd><time datetime="{{ submission.submitted_at }}">{{ pages.utc_time(submission.submitted_at) }}</time> ({{ pages.ago(submission.submitted_at, now) }})</dd>
+    </dl>
+    <h2>Reasons</h2>
+    {%- if submission.reasons %}
+    {#- What unranked it first, then the warnings, which do not. #}
+    <ul class="reasons">
+      {%- for code in pages.unranking(submission.reasons) %}
+      <li><strong>{{ pages.reason_label(code) }}.</strong> {{ pages.reason_detail(code) }}</li>
+      {%- endfor %}
+      {%- for code in pages.warnings(submission.reasons) %}
+      <li class="reason-warning"><strong>Warning: {{ pages.reason_label(code) }}.</strong> {{ pages.reason_detail(code) }} Warnings do not unrank.</li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    <p>None.</p>
+    {%- endif %}
+{%- endblock %}

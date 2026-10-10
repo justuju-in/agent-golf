@@ -21,7 +21,7 @@ updated: 2026-10-10
   - [x] 2.5 `GET /api/v1/problems` per `docs/spec.md`, built from the problem config
 - [ ] **Phase 3 — Pages**
   - [x] 3.1 Board per problem: ranked rows, then unranked players; 30-second refresh; projector-size text
-  - [ ] 3.2 Submission page: username, model, numbers, solved, reasons; never prompts, folders or raw log
+  - [x] 3.2 Submission page: username, model, numbers, solved, reasons; never prompts, folders or raw log
   - [ ] 3.3 Rules page: the seven rules, each problem's instructions and setup, scoring, install and submit steps
 - [ ] **Phase 4 — Real counter** (after Amit merges `counter` to `main`)
   - [ ] 4.1 Bring `main` into this branch; import from `server.counter`; delete the stand-in
@@ -106,6 +106,7 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - Files: `server/` templates
 - Do: `/submissions/<id>`: Ranked #N or Unranked, the four numbers large ("unknown" for a null total), model and thinking level, solved yes/no, reasons in plain English (warnings marked as such), submitted time.
 - Acceptance: the `url` in an upload reply opens this page; its HTML contains no prompt text, `cwd` or Hackattic username.
+- Result (2026-10-11): `env TMPDIR=server/data/tmp bash tools/check.sh` → `Ran 106 tests … OK`, `gate: ok`; 11 new in `server/tests/test_submission_page.py`: the reply's `url` opens the page (title, numbers, facts, `<time datetime>`, no refresh), all three standings ("Ranked #1" for two equal scores, "Ranked #3", "Ranked (not your best attempt)", "Unranked"), "unknown" tokens, model and thinking level on a fixed-model problem whose board hides them, several and none, solved yes/no, reasons in plain English with unranking ones first and warnings marked (a warning alone stays "Ranked #1"), `folder_reused` without the folder, no `cwd`, session id, prompt, file hash, key or Hackattic username in the HTML, HTML 404s, a problem no longer listed (its slug, no link), escaping. `test_submissions.py`'s two `/submissions/<id>` checks now expect the HTML page. Screenshots come with 3.3.
 
 #### 3.3 Rules page
 - Files: `server/` templates
@@ -182,3 +183,4 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - 2026-10-11 — 2.4 done, resumed after an app restart cut the first run short: problem config in `server/problems.py` (problems with an unset model or thinking level are neither listed nor accepted) and the upload in `server/submissions.py`, with the counter imported in that one place. The form is parsed after the key check with no FastAPI form parameters, so there is no 422; an unreadable form is `not_pi_log`. The counter's result is checked against the contract before it is stored (otherwise a 500, like a crash), and only the spec's seven metrics are kept. Submission ids are never reused (`AUTOINCREMENT`), so ids follow first uploads for `prior_folders`. python-multipart's warnings are silenced, because they quote bytes of a malformed upload.
 - 2026-10-11 — 2.5 done: `GET /api/v1/problems` serves `problems.problem_list_json()`, the rules and every set problem. `problems.check()` runs in `create_app`, so a config that breaks the list's limits stops the server from starting. Beyond the spec's limits it also refuses what the plugin on `feature/plan-004` would refuse (bidi controls, unpaired surrogates, slug, model and thinking-level shapes), so the list it serves never shows as "unavailable".
 - 2026-10-11 — 3.1 done: ranking in `server/board.py`, page text (setups, reason labels, counts, "5 min ago") in `server/pages.py`, `templates/board.html`, and an HTML 404 page for unknown boards. Small choices: among equal scores, and between a player's equally good sessions, the first submitted comes first; the Unranked rows list only the reasons that unranked them (warnings are on the submission page); "submitted" is the session's latest upload; the footer shows `/golf-submit <slug>`, as the plugin on `feature/plan-004` needs the slug. Nav: Board and Register (Rules comes with 3.3).
+- 2026-10-11 — 3.2 done: `/submissions/<id>` is now the HTML page (`templates/submission.html`), replacing 2.4's JSON, and still reads only `submissions.public()`; its standing comes from the board (`board.rank`). Unranking reasons come before warnings; a problem dropped from the config shows its slug.

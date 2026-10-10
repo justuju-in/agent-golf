@@ -39,13 +39,16 @@ curl -s -i -H "Authorization: Bearer $KEY" -F problem=help_me_unpack -F session=
   http://localhost:8000/api/v1/submissions
 ```
 
-Add `-F folder_was_empty=true` (or `false`) to send what the plugin records; it is stored and has no effect on ranking. The reply is "Contract: website → plugin" in [`../docs/spec.md`](../docs/spec.md): `200` with `ranked` or `unranked`, or `401`, `400` or `413` with `rejected` and a reason; `500` means a counter bug. Its `url` opens the submission (plain JSON until the page in plan 002 step 3.2). The same file again returns the stored entry; the same session again replaces it, keeping its `url`. The raw file is kept in `uploads/` in the data directory and never served.
+Add `-F folder_was_empty=true` (or `false`) to send what the plugin records; it is stored and has no effect on ranking. The reply is "Contract: website → plugin" in [`../docs/spec.md`](../docs/spec.md): `200` with `ranked` or `unranked`, or `401`, `400` or `413` with `rejected` and a reason; `500` means a counter bug. Its `url` opens the submission's page. The same file again returns the stored entry; the same session again replaces it, keeping its `url`. The raw file is kept in `uploads/` in the data directory and never served.
 
 Until step 4.1, scoring is the stand-in in `standin_counter.py`: made-up numbers and verdicts, models named `standin/…`. Problems and their setup live in `problems.py`; only problems whose model and thinking level are set are accepted.
 
 ## Pages
 
 - `/` is the board of the first listed problem in `problems.py`; every listed problem has its own at `/problems/<slug>`, and each board links the others. Ranked: each player's best ranked session, fewest tokens first (ties: fewer prompts, then fewer characters; equal scores share a rank), with a model column only when the problem's model is `"any"`. Unranked: the latest attempt of each player with no ranked session, with the reasons that unranked it. Boards reload themselves every 30 seconds, for the projector.
+- `/submissions/<id>` (the `url` in upload replies): "Ranked #N" when it is the player's row on its board, "Ranked (not your best attempt)" when another of their sessions is, otherwise "Unranked"; tokens ("unknown" when not counted), prompts, characters and tool calls; the models and thinking levels that answered; solved; reasons in plain English, warnings marked; the submitted time.
+
+Pages show only usernames, models, numbers and verdicts: never prompts, folders, session ids, raw logs, keys or Hackattic usernames.
 
 ## Problem list (as `/golf-problems` reads it)
 

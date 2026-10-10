@@ -7,7 +7,7 @@ session ids, raw logs, keys or Hackattic usernames.
 from datetime import UTC, datetime
 
 from server.problems import Problem
-from server.submissions import UNRANKING_REASONS
+from server.submissions import UNRANKING_REASONS, WARNING_REASONS
 
 SCORING = "Fewest tokens wins. Ties: fewer prompts, then fewer characters."
 
@@ -60,9 +60,19 @@ def reason_label(code: str) -> str:
     return REASONS[code][0]
 
 
+def reason_detail(code: str) -> str:
+    """A reason code's explanation, a sentence or two."""
+    return REASONS[code][1]
+
+
 def unranking(reasons: list[str]) -> list[str]:
     """The codes that unranked a session, without its warnings."""
     return [code for code in reasons if code in UNRANKING_REASONS]
+
+
+def warnings(reasons: list[str]) -> list[str]:
+    """The warning codes: shown, but the session stays ranked."""
+    return [code for code in reasons if code in WARNING_REASONS]
 
 
 def setup_text(problem: Problem) -> str:
@@ -102,3 +112,9 @@ def ago(when: str, now: datetime) -> str:
         return "1 hour ago" if hours == 1 else f"{hours} hours ago"
     days = hours // 24
     return "1 day ago" if days == 1 else f"{days} days ago"
+
+
+def utc_time(when: str) -> str:
+    """The ISO 8601 time `when`, for people, e.g. "11 Oct 2026, 10:05 UTC"."""
+    moment = datetime.fromisoformat(when).astimezone(UTC)
+    return f"{moment.day} {moment:%b %Y, %H:%M} UTC"

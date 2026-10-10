@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Annotated
 
 import jinja2
-from fastapi import APIRouter, Depends, FastAPI, Form, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, FastAPI, Form, Header, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -159,13 +159,23 @@ def problem_board(request: Request, slug: str, conn: Conn) -> HTMLResponse:
     return board_page(request, conn, problem)
 
 
-@router.get("/submissions/{submission_id:int}")
-def submission(submission_id: int, conn: Conn) -> JSONResponse:
-    """The link in upload replies. Until step 3.2's page: the public fields as JSON."""
+@router.get("/submissions/{submission_id:int}", response_class=HTMLResponse)
+def submission(request: Request, submission_id: int, conn: Conn) -> HTMLResponse:
+    """The link in upload replies: one submission's public fields and its standing."""
     found = submissions.public(conn, submission_id)
     if found is None:
-        raise HTTPException(status_code=404)
-    return JSONResponse(found)
+        return not_found(request)
+    return templates.TemplateResponse(
+        request,
+        "submission.html",
+        {
+            "submission": found,
+            # None once the problem is no longer listed; the page then shows its slug.
+            "problem": problems.get(found["problem"]),
+            "rank": board.rank(conn, found["problem"], submission_id),
+            "now": pages.now(),
+        },
+    )
 
 
 def register_page(

@@ -455,24 +455,12 @@ class SubmissionsTest(UploadTestCase):
         reply = self.upload(content, folder_was_empty="true").json()
         url = urlsplit(reply["url"])
         self.assertEqual(f"{url.scheme}://{url.netloc}", BASE_URL)
+        # The submission page (test_submission_page.py tests what it shows).
         response = self.client.get(url.path)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers["content-type"], "application/json")
-        body = response.json()
+        self.assertEqual(response.headers["content-type"], "text/html; charset=utf-8")
+        self.assertIn("Submission by alice", response.text)
         (row,) = self.rows()
-        self.assertEqual(
-            body,
-            {
-                "id": row["id"],
-                "username": "alice",
-                "problem": "help_me_unpack",
-                "status": "ranked",
-                "reasons": ["usage_not_recorded"],
-                "metrics": reply["metrics"],
-                "first_submitted_at": row["first_submitted_at"],
-                "submitted_at": row["submitted_at"],
-            },
-        )
         for private in (
             "/home/alice/secret-folder", "session-id-1234", row["sha256"], "alice_hackattic", "prompt 0",
             "folder_was_empty",
@@ -496,7 +484,8 @@ class ConfiguredCounterTest(UploadTestCase):
         self.assertEqual((body["reasons"], body["metrics"]), (expected["reasons"], expected["metrics"]))
         unranked = submissions.UNRANKING_REASONS & set(expected["reasons"])
         self.assertEqual(body["status"], "unranked" if unranked else "ranked")
-        self.assertEqual(self.client.get(urlsplit(body["url"]).path).json()["metrics"], expected["metrics"])
+        page = self.client.get(urlsplit(body["url"]).path)
+        self.assertEqual((page.status_code, page.headers["content-type"]), (200, "text/html; charset=utf-8"))
 
     def test_not_a_pi_log(self):
         for content in (b"", b"hello\n", b'{"type": "message"}\n'):

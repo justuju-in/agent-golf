@@ -83,3 +83,8 @@ def board(conn: sqlite3.Connection, problem: str) -> Board:
         if entry.user_id not in best:
             latest.setdefault(entry.user_id, entry)
     return Board(ranked=ranked, unranked=list(latest.values()))
+
+
+def rank(conn: sqlite3.Connection, problem: str, submission_id: int) -> int | None:
+    """The submission's rank, if it is its player's row on this problem's board; else None."""
+    return next((entry.rank for entry in board(conn, problem).ranked if entry.id == submission_id), None)
