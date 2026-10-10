@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}{% if errors %}Error: {% endif %}Register{% endblock %}
+
+{% block main %}
+{#- One labelled text field. An error is tied to its input by aria-describedby and aria-invalid. #}
+{%- macro field(name, label, hint, value, error, autofocus) %}
+      <div class="field{% if error %} field-error{% endif %}">
+        <label for="{{ name }}">{{ label }}</label>
+        <p class="hint" id="{{ name }}-hint">{{ hint }}</p>
+        {%- if error %}
+        <p class="error" id="{{ name }}-error">{{ error }}</p>
+        {%- endif %}
+        <input type="text" id="{{ name }}" name="{{ name }}" value="{{ value }}" required
+               autocapitalize="none" autocorrect="off" spellcheck="false"
+               aria-describedby="{{ name }}-hint{% if error %} {{ name }}-error{% endif %}"
+               {%- if error %} aria-invalid="true"{% endif %}{% if autofocus %} autofocus{% endif %}>
+      </div>
+{%- endmacro %}
+    <h1>Register</h1>
+    <p>Register once to get the secret key for the Pi plugin. The key is shown only once, so have somewhere ready to save it.</p>
+    <form method="post" action="/register" novalidate>
+{{- field("username", "Username",
+          "3 to 32 characters: lowercase letters, digits or underscores. Shown on the leaderboard.",
+          values.username, errors.username, errors.username) }}
+{{- field("hackattic_username", "Hackattic username",
+          "Your username on hackattic.com. Never shown on public pages.",
+          values.hackattic_username, errors.hackattic_username,
+          errors.hackattic_username and not errors.username) }}
+      <button type="submit">Register</button>
+    </form>
+{%- endblock %}

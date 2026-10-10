@@ -15,7 +15,7 @@ updated: 2026-10-10
   - [x] 1.2 Second round on `main`: per-problem setup and problem config, problem list contract, generic "solved" check, usage reason codes, `agent-golf.justuju.in` (`d32ff18`, `d5062d5`)
 - [ ] **Phase 2 — API, against a stand-in counter**
   - [x] 2.1 Stack skeleton (FastAPI, Jinja, SQLite, Python 3.12, pinned `server/requirements.txt`) and `GET /api/v1/me` exactly per `docs/spec.md`
-  - [ ] 2.2 Register page → key page: username + Hackattic username, key shown once, only its SHA-256 stored
+  - [x] 2.2 Register page → key page: username + Hackattic username, key shown once, only its SHA-256 stored
   - [ ] 2.3 Stand-in counter in `server/` (never `server/counter/`): the spec's `score()`, `NotPiLogError` and reason sets; gives ranked and unranked results
   - [ ] 2.4 Problem config, then `POST /api/v1/submissions` per `docs/spec.md`: checks, store file, call counter with the problem's setup, store result, reply
   - [ ] 2.5 `GET /api/v1/problems` per `docs/spec.md`, built from the problem config
@@ -68,6 +68,7 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - Files: `server/`
 - Do: form with username (`[a-z0-9_]{3,32}`, lowercased, unique) and Hackattic username (required, trimmed, at most 64 characters; `create_user` from 2.1 does not check it yet); inline errors for a taken (409) or badly formed name; key = random UUID; store only SHA-256(key). The POST response is the key page itself (no redirect, no key in any URL, `Cache-Control: no-store`): key in large type, copy button, "save it now, there is no recovery", and `/golf-login <key>` ready to paste.
 - Acceptance: registering the same name twice fails; the key never appears in the database, logs or any URL; the new key passes `GET /api/v1/me`.
+- Result (2026-10-11): `bash tools/check.sh` → `Ran 26 tests … OK`, `gate: ok`. Live check (Kiro): GET 200 with two labelled fields; POST `Bob` → 200 key page, `no-store`, no `Location`, stored as `bob`, key passes `/api/v1/me`; same name → 409 with no key; bad name → 400 with the script tag escaped and `aria-invalid`; blank or 65-character Hackattic name → 400; key absent from the database and server log; the only script is `/static/copy.js`. Screenshots at 1280 and 390 px looked right. The workflow run was stopped before its review, because the code was done and only verification was left.
 
 #### 2.3 Stand-in counter
 - Files: `server/standin_counter.py` and its tests (both deleted in 4.1)
@@ -168,3 +169,4 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - 2026-10-10 — 1.1 done on `main` (`d412128`, `278dc35`). Restructured: agreements, API against a stand-in counter, pages, real-counter swap, Docker and deploy; stack, page and board decisions recorded
 - 2026-10-10 — Added 1.2 (second spec round, done on `main` as `d32ff18`, `d5062d5`) and 2.5 (`GET /api/v1/problems`); per-problem setup in a website problem config; domain is `agent-golf.justuju.in`; deploy must pass a 19 MB upload
 - 2026-10-10 — 2.1 done: FastAPI skeleton and `GET /api/v1/me`, tested locally by Anup. Later, not today: the tests print a Starlette deprecation warning about httpx; leave it, no dependency upgrades today.
+- 2026-10-11 — 2.2 done: register form and key page (Jinja templates, one CSS file, copy-button JS only); `create_user` now checks the Hackattic username (required, trimmed, at most 64 characters, no control characters).

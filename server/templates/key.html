@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Your key{% endblock %}
+
+{% block main %}
+    <h1>Your secret key</h1>
+    <p>You are registered as <strong>{{ username }}</strong>.</p>
+    <div class="warning">
+      <p><strong>Save it now. It is shown once and there is no recovery.</strong> Reloading this page will not show it again.</p>
+    </div>
+    <p class="key"><code id="key">{{ key }}</code></p>
+    {#- Copy rows stay hidden unless copy.js can use the clipboard; the text above is selectable either way. #}
+    <p class="copy-row" hidden><button type="button" data-copy="key">Copy key</button> <span class="copy-status" role="status"></span></p>
+    <p>Next step: in Pi, run this line to log in.</p>
+    <p class="command"><code id="login-command">/golf-login {{ key }}</code></p>
+    <p class="copy-row" hidden><button type="button" data-copy="login-command">Copy command</button> <span class="copy-status" role="status"></span></p>
+{%- endblock %}
+
+{% block scripts %}
+  <script src="/static/copy.js" defer></script>
+{% endblock %}

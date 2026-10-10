@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} – Agent Golf</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <span class="site-name">Agent Golf</span>
+      {#- Link only to pages that exist; later steps add Board and Rules. #}
+      <nav aria-label="Main">
+        <a href="/register"{% if request.url.path == "/register" %} aria-current="page"{% endif %}>Register</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+{% block main %}{% endblock %}
+  </main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

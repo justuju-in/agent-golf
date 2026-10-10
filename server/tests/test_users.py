@@ -13,6 +13,12 @@ from unittest import mock
 from server import db, users
 from server.config import Settings
 
+# Empty, blank, 65 characters, and control characters inside the name
+# (NUL, tab, newline, escape, DEL, C1 next line). test_register uses them too.
+BAD_HACKATTIC_USERNAMES = (
+    "", "   ", "h" * 65, "bo\x00b", "bo\tb", "bo\nb", "bo\x1b[31mb", "bo\x7fb", "bo\x85b",
+)
+
 
 class CreateUserTest(unittest.TestCase):
     def setUp(self):
@@ -65,6 +71,18 @@ class CreateUserTest(unittest.TestCase):
                 users.create_user(self.conn, name, "second")
         self.assertEqual(self.count_users(), 1)
 
+    def test_hackattic_username_is_trimmed(self):
+        users.create_user(self.conn, "alice", " \talice_h  ")
+        users.create_user(self.conn, "bob", "  " + "b" * 64 + "  ")  # 64 once trimmed
+        rows = self.conn.execute("SELECT hackattic_username FROM users ORDER BY id").fetchall()
+        self.assertEqual([row[0] for row in rows], ["alice_h", "b" * 64])
+
+    def test_bad_hackattic_username_is_rejected(self):
+        for name in BAD_HACKATTIC_USERNAMES:
+            with self.subTest(name=name), self.assertRaises(users.InvalidHackatticUsername):
+                users.create_user(self.conn, "alice", name)
+        self.assertEqual(self.count_users(), 0)
+
     def test_each_user_gets_their_own_key(self):
         alice = users.create_user(self.conn, "alice", "a")
         bob = users.create_user(self.conn, "bob", "b")
@@ -98,6 +116,12 @@ class CommandLineTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(out, "")
         self.assertIn("already taken", err)
+
+    def test_bad_hackattic_username_fails(self):
+        code, out, err = self.run_main("bob", "  ")
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "")
+        self.assertIn("Hackattic username is required", err)
 
 
 if __name__ == "__main__":

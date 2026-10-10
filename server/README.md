@@ -17,9 +17,13 @@ uv pip install -r server/requirements.txt   # again whenever requirements.txt ch
 | `AGENT_GOLF_DATA_DIR` | `server/data/` (beside this file, whatever the current directory; ignored by git) | SQLite database, later also uploaded logs. Created at startup if missing. |
 | `AGENT_GOLF_API_BASE_URL` | `http://localhost:8000` | Public origin, for absolute links in upload replies. Live: `https://agent-golf.justuju.in`. |
 
-## Test user
+## Register
 
-Until the register page exists, create a user from the repo root, with the same `AGENT_GOLF_DATA_DIR` as the server. It prints the key once; only its SHA-256 is stored, so it cannot be shown again.
+With the server running, open http://localhost:8000/register. The page that answers the form shows the key once, with `/golf-login <key>` ready to paste; only its SHA-256 is stored, so it cannot be shown again. Reloading that page sends the form again and gets "already taken".
+
+## Test user (scripted)
+
+For scripted test users, the command line does the same from the repo root, with the same `AGENT_GOLF_DATA_DIR` as the server, and prints the key once:
 
 ```bash
 KEY=$(.venv/bin/python -m server.users alice alice_hackattic)
