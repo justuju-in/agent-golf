@@ -1,6 +1,6 @@
 ---
 name: 004-plugin-and-deploy
-description: Pi extension with /golf-login and /golf-submit in plugin/, then deploy the website to agent-golf.arnav.tech.
+description: Pi extension with /golf-login and /golf-submit in plugin/, then publish the plugin; Anup owns website deployment.
 status: started
 created: 2026-10-10
 updated: 2026-10-10
@@ -50,7 +50,7 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 
 #### 1.5 Folder start observation
 - Files: `plugin/index.ts`, `plugin/package.json`, `plugin/test/folder-check.test.mjs`
-- Do: use `session_start`; recover existing `agent-golf-folder-check` custom entries; append at most one schema-1 observation for the current session; use `fs.promises.readdir(ctx.cwd)` with all entries counted; treat inherited/forked sessions, existing conversation without evidence, and read failures as `unknown`; keep the data in `pi.appendEntry()` custom entries excluded from model context.
+- Do: use `session_start`; recover existing `agent-golf-folder-check` custom entries; append at most one schema-1 observation for the current session; use `fs.promises.readdir(ctx.cwd)` with all entries counted; permit only known initialization entries before observing startup/new sessions; treat inherited/forked sessions, prior activity without evidence (including bash/tool results), and read failures as `unknown`; keep the data in `pi.appendEntry()` custom entries excluded from model context.
 - Acceptance: `bash tools/check.sh` passes unit coverage for empty/nonempty/hidden/later-created/resume/reload/existing/fork/read-failure/session-switch behavior, plus an isolated Pi RPC smoke test with zero model calls proving the custom entry is present in session state and absent from model context.
 
 ### Phase 2 — Publish the plugin
@@ -70,6 +70,8 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 - Step 1.1 checkpoint (2026-10-10): `bash tools/check.sh` → `gate: ok (no component tests yet)`; `git diff --check` passed. Plugin behavior was verified separately with the Pi RPC smoke test described above.
 - Step 1.5 verification (2026-10-10): `bash tools/check.sh` → `gate: ok`; `git diff --check` passed. Tests verified empty fresh cwd → `empty`; hidden file → `nonempty`; files created after startup do not change the initial observation; resume/reload preserves existing metadata; existing conversation without evidence → `unknown`; forked/inherited sessions are not upload-certified; read failure → `unknown`; session switching uses per-session state; Pi RPC smoke saw one custom entry, no projected model messages, no usage entries, and no assistant messages.
 
+- Step 1.5 review-fix checkpoint (2026-10-10): `bash tools/check.sh` → `gate: ok` with 16 tests passed, including real CLI reopening of a bash-only session as `unknown`; `git diff --check` passed.
+
 ## Decisions
 
 | Decision | Rationale | Rejected alternative |
@@ -84,3 +86,4 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 - 2026-10-10 — created
 - 2026-10-10 — Prateek owns plan 004; step 1.1 implemented and approved for commit. Login API response and server-origin configuration still need agreement with the website owner.
 - 2026-10-10 — Step 1.5 implemented on `feature/golf-folder-check` for later integration into `feature/plan-004`; automated plugin tests added to the gate.
+- 2026-10-10 — Review fixes approved: reject prior non-initialization activity, use public Pi type exports, and isolate/harden subprocess tests. `/me` contract is agreed on main; production origin remains unresolved.
