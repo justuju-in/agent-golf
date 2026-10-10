@@ -12,7 +12,7 @@ from typing import Annotated
 
 import jinja2
 from fastapi import APIRouter, Depends, FastAPI, Form, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
@@ -60,6 +60,13 @@ def me(conn: Conn, authorization: Annotated[str | None, Header()] = None) -> JSO
             headers={**NO_STORE, "WWW-Authenticate": "Bearer"},
         )
     return JSONResponse({"username": user["username"]}, headers=NO_STORE)
+
+
+@router.get("/api/v1/problems")
+def list_problems() -> Response:
+    """docs/spec.md, "Contract: problem list": public, no key. The bytes are the ones
+    problems.check() measured when the app started."""
+    return Response(problems.problem_list_json(), media_type="application/json")
 
 
 def rejected(reason: str) -> JSONResponse:
@@ -186,7 +193,12 @@ def register(
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    """The app; tests pass their own settings (e.g. a temporary data directory)."""
+    """The app; tests pass their own settings (e.g. a temporary data directory).
+
+    Raises problems.InvalidConfig, so the server does not start, if the problem config
+    breaks a limit of the problem list.
+    """
+    problems.check()
     settings = settings or load_settings()
 
     @asynccontextmanager

@@ -42,3 +42,11 @@ curl -s -i -H "Authorization: Bearer $KEY" -F problem=help_me_unpack -F session=
 Add `-F folder_was_empty=true` (or `false`) to send what the plugin records; it is stored and has no effect on ranking. The reply is "Contract: website → plugin" in [`../docs/spec.md`](../docs/spec.md): `200` with `ranked` or `unranked`, or `401`, `400` or `413` with `rejected` and a reason; `500` means a counter bug. Its `url` opens the submission (plain JSON until the page in plan 002 step 3.2). The same file again returns the stored entry; the same session again replaces it, keeping its `url`. The raw file is kept in `uploads/` in the data directory and never served.
 
 Until step 4.1, scoring is the stand-in in `standin_counter.py`: made-up numbers and verdicts, models named `standin/…`. Problems and their setup live in `problems.py`; only problems whose model and thinking level are set are accepted.
+
+## Problem list (as `/golf-problems` reads it)
+
+```bash
+curl -s -i http://localhost:8000/api/v1/problems   # public: no key
+```
+
+The reply is "Contract: problem list" in [`../docs/spec.md`](../docs/spec.md): the rules, `rules_version`, and every problem in `problems.py` whose model and thinking level are set (`"any"` counts as set). At startup the app checks the config against the list's limits (plain text, at most 1,000 characters per string and 64 KB in all, `challenge_url` exactly `https://hackattic.com/challenges/<slug>`) and refuses to start if `problems.py` breaks one.
