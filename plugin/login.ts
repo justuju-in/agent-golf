@@ -3,6 +3,8 @@ import { chmod, lstat, mkdir, open, rename, unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { getApiOrigin, resolveApiOrigin } from "./config.ts";
+export { getApiOrigin } from "./config.ts";
 
 export interface LoginOptions {
   baseUrl?: string;
@@ -27,19 +29,6 @@ interface CredentialFile {
 
 const USERNAME = /^[a-z0-9_]{3,32}$/;
 const SETUP_MESSAGE = "Set AGENT_GOLF_API_BASE_URL to the server origin (for local testing: http://localhost:8000).";
-
-export function getApiOrigin(baseUrl: string | undefined): string {
-  if (!baseUrl?.trim()) throw new Error("missing-origin");
-  const url = new URL(baseUrl.trim());
-  const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
-  if (
-    url.username || url.password || url.search || url.hash || url.pathname !== "/" ||
-    (url.protocol !== "https:" && !(url.protocol === "http:" && loopback))
-  ) {
-    throw new Error("invalid-origin");
-  }
-  return url.origin;
-}
 
 function isCredentialFile(value: unknown): value is CredentialFile {
   if (!value || typeof value !== "object") return false;
@@ -125,9 +114,9 @@ export async function loginStudent(args: string, options: LoginOptions = {}): Pr
 
   let origin: string;
   try {
-    origin = getApiOrigin(options.baseUrl ?? process.env.AGENT_GOLF_API_BASE_URL);
+    origin = resolveApiOrigin(options.baseUrl);
   } catch {
-    return { message: `Missing or invalid server origin. ${SETUP_MESSAGE} Use HTTPS except for loopback development; do not include credentials, a path, query, or fragment.`, type: "error" };
+    return { message: `Invalid server origin override. ${SETUP_MESSAGE} Use HTTPS except for loopback development; do not include credentials, a path, query, or fragment.`, type: "error" };
   }
 
   let username: string;

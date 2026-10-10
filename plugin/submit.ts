@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { getApiOrigin, readStoredCredential, type LoginResult } from "./login.ts";
+import { readStoredCredential, type LoginResult } from "./login.ts";
+import { getApiOrigin, resolveApiOrigin } from "./config.ts";
 import { hasPendingUserBash } from "./user-bash.ts";
 
 export interface SubmitOptions {
@@ -74,9 +75,9 @@ export async function submitSession(args: string, ctx: SubmitContext, options: S
     if (hasPendingUserBash(ctx.sessionManager.getEntries())) return error("A user Bash command is still running or its result has not been recorded. Wait for it to finish before submitting.");
     let origin: string;
     try {
-      origin = getApiOrigin(options.baseUrl ?? process.env.AGENT_GOLF_API_BASE_URL);
+      origin = resolveApiOrigin(options.baseUrl);
     } catch {
-      return error("Set AGENT_GOLF_API_BASE_URL to a valid HTTPS server origin (loopback HTTP is allowed for local testing).");
+      return error("Invalid server origin override. Set AGENT_GOLF_API_BASE_URL to a valid HTTPS server origin (loopback HTTP is allowed for local testing).");
     }
     let credential;
     try {

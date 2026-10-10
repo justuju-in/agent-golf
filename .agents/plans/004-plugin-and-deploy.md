@@ -18,7 +18,7 @@ updated: 2026-10-10
   - [x] 1.5 Optional: record at session start whether the folder was empty
 - [ ] **Phase 2 — Publish the plugin** (website deployment moved to plan 002, owned by Anup)
   - [ ] 2.1 Make the plugin installable with one `pi install` command (npm or GitHub; see step 2.1)
-  - [ ] 2.2 Plugin points at the live site by default (`https://agent-golf.justuju.in`), overridable for local testing
+  - [x] 2.2 Plugin points at the live site by default (`https://agent-golf.justuju.in`), overridable for local testing
   - [ ] 2.3 `plugin/README.md`: install and update steps for students
 - [ ] **Phase 3 — Verification and handoff**
   - [ ] 3.1 End-to-end from a fresh laptop: install → login → solve → submit → row on live board
@@ -45,7 +45,7 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 
 #### 1.2 Login
 - Files: `plugin/login.ts`, `plugin/index.ts`, `plugin/test/login.test.mjs`, `AGENTS.md`
-- Do: require an explicit `AGENT_GOLF_API_BASE_URL` until the live origin is agreed; permit HTTPS or loopback-only HTTP origins, reject redirects; validate via the `/me` contract before atomic local credential storage; preserve existing credentials on failure; never print response bodies, keys, or raw exceptions.
+- Do: use shared origin configuration, defaulting to `https://agent-golf.justuju.in` with an `AGENT_GOLF_API_BASE_URL` override; permit HTTPS or loopback-only HTTP origins, reject redirects; validate via the `/me` contract before atomic local credential storage; preserve existing credentials on failure; never print response bodies, keys, or raw exceptions.
 - Storage: `~/.config/agent-golf/credentials.json`, directory 0700 and file 0600; keep separate credentials per canonical server origin. Server key storage remains hash-only.
 - Acceptance: mock-API and isolated Pi command tests exercise successful login, failures, permissions, origin isolation, secret-free output and unchanged session/model state; `bash tools/check.sh` passes. Real-server integration remains pending.
 
@@ -69,6 +69,11 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
   - Host packages (`@earendil-works/pi-coding-agent` etc.) go in `peerDependencies` with `"*"`.
 - Acceptance: on a laptop without the repo, the install command adds `/golf-login` and `/golf-submit`; `pi update --extensions` picks up a new version.
 
+#### 2.2 Confirmed default origin
+- Files: `plugin/config.ts`, `plugin/login.ts`, `plugin/submit.ts`, `plugin/test/config.test.mjs`, `plugin/README.md`
+- Do: use the confirmed HTTPS origin when no override is present; preserve environment/local overrides, fail closed on invalid overrides, and never reuse or migrate another origin's credentials. No startup HTTP requests.
+- Acceptance: resolver and mocked command tests prove both commands share the default/override, invalid overrides send no credentials, and changing origins does not migrate saved keys. Run the repository gate; live-server verification remains separate.
+
 ## Validation
 
 - End-to-end test passes for all three team members.
@@ -90,7 +95,7 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 | Start with command-only stubs | Validates loading and zero-token dispatch independently of the unavailable server | Implement unvalidated key storage or upload before API agreement |
 | Folder observation is custom session metadata | `pi.appendEntry()` persists extension state outside model context and survives normal session continuation | Custom messages, external files, watchers, signatures, or upload-time rescans |
 | Be conservative for inherited/forked sessions | Pi marks forks/clones with `parentSession`; copied metadata must not become a fresh-attempt certificate | Trust copied `empty` metadata in a forked session |
-| Explicit API origin until production address is agreed | Avoid sending credentials to an assumed host; localhost:8000 is a manual development convention | Hardcoded provisional production default |
+| Confirmed default origin with explicit override | Team confirmed https://agent-golf.justuju.in; shared resolution keeps login and submit consistent, and invalid overrides never fall back silently | Unconfirmed production host or automatically migrating credentials |
 | Permission-protected local credentials, isolated per origin | Approved MVP storage lets the plugin authenticate without conflating test/live keys; server still stores only hashes | OS keychain dependency or unusable client-side hash-only storage |
 | Refuse credential-validation redirects | Do not forward keys to an unexpected destination | Automatically follow server redirects |
 | Confirm raw bytes and refuse changed-session uploads | User approves the exact session snapshot and destination; preserve all branches without model calls | Branch export, upload-time redaction, or uploading after the user switches sessions |
@@ -108,4 +113,5 @@ A student never leaves Pi to submit. Done when `/golf-submit` from a fresh insta
 - 2026-10-10 — Step 1.3 reviewed and approved: unchanged multipart upload, explicit raw-log confirmation, private per-origin credential reading, server-owned response display, no automatic retries, and no model calls. Fixed reviewed P2 incomplete-upload issue with hashed user-Bash start markers matched to recorded results; real Pi tests cover Bash already running and started during confirmation. Missing Bash results fail closed. Real-server integration remains pending.
 - 2026-10-10 — Approved metadata cleanup restores HANDOFF.md exactly to current origin/main; plan index already matches main. Historical branch-only shared-state edits are removed from the final branch diff; code unchanged. Verification (21:55 IST): `bash tools/check.sh` → `gate: ok`, 55 tests passed; `git diff --check` passed; `git diff --exit-code origin/main -- .agents/HANDOFF.md .agents/plans/README.md` passed.
 - 2026-10-10 — API origin confirmed as https://agent-golf.justuju.in; default-origin implementation/docs update still pending. Counter branch dc44ac9 removes answer recheck, adds missing_usage (unknown/null total, unrank) and usage_not_recorded (warning with numeric total), and supplies two redacted fixtures. These changes are not yet in the shared spec on main; current plugin parser must be aligned after the contract lands. Observed thinkingLevel fields do not settle the official competition setup.
-- Next: fetch Anup's updated usage/reason and problems contracts; align submission response parsing, set the confirmed default origin, and add step 1.6 for the browser after its contract lands. Then verify step 1.4 and proceed to publishing. Do not update HANDOFF.md on this branch.
+- 2026-10-10 — Step 2.2 reviewed and approved: shared config resolver defaults to the confirmed origin; explicit override precedence and origin validation are preserved. Five new tests cover default/override routing in both commands, fail-closed invalid overrides, and no cross-origin credential migration. README updated; real production API was not contacted. No blocking review findings. Verification (22:23 IST): `bash tools/check.sh` → `gate: ok`, 60 tests passed; `git diff --check` and shared-metadata comparison against origin/main passed.
+- Next: finish the step 1.4 error-message audit and choose the publishing route. Fetch Anup's updated usage/reason and problems contracts when pushed; align response parsing and add step 1.6 afterward. Do not update HANDOFF.md on this branch.
