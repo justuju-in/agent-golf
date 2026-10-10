@@ -1,7 +1,7 @@
 ---
 name: 003-counter
 description: Pi log reader and general counter in server/counter/ — tokens, prompts, characters, tool calls, model check, solved check.
-status: created
+status: started
 created: 2026-10-10
 updated: 2026-10-10
 ---
@@ -11,12 +11,12 @@ updated: 2026-10-10
 ## Progress
 
 - [ ] **Phase 1 — Pi reader**
-  - [ ] 1.1 `server/counter/pi_reader.py`: parse a Pi `.jsonl` into a common event list
+  - [x] 1.1 `server/counter/pi_reader.py`: parse a Pi `.jsonl` into a common event list
   - [ ] 1.2 Tests against `samples/` added; test command added to `tools/check.sh`
 - [ ] **Phase 2 — Scoring**
-  - [ ] 2.1 `server/counter/score.py`: tokens, prompts, characters, tool calls
-  - [ ] 2.2 Model and thinking-level check across every assistant message
-  - [ ] 2.3 Solved check from Hackattic's reply in tool results
+  - [x] 2.1 `server/counter/score.py`: tokens, prompts, characters, tool calls
+  - [x] 2.2 Model and thinking-level check across every assistant message
+  - [x] 2.3 Solved check from Hackattic's reply in tool results
   - [ ] 2.4 Answer recheck for *Help me unpack*
   - [ ] 2.5 Folder-reuse, custom-setup and consistency checks; reasons list
 - [ ] **Phase 3 — Verification and handoff**
@@ -81,3 +81,14 @@ events ──score──▶ {metrics, reasons}
 ## Changelog
 
 - 2026-10-10 — created
+
+## Delivery checkpoint — Amit, 2026-10-10
+
+- User authorized implementation, branch creation, commit and push.
+- Reader, scoring, linked success detection, basic warnings and unpack recheck implemented.
+- `bash tools/check.sh`: PASS, eight synthetic tests.
+- Private real log: 10 prompts, 599 characters, 15 tool calls; brute_force_zip passed. Recorded usage sum 202053; total unknown because an error reply reports zero. No private log committed.
+- Integration decision: missing_usage must unrank, total_tokens may be null. Website should import UNRANKING_REASONS. Shared spec unchanged; owners need to agree the addition.
+- Pending: three real redacted fixtures, real unpack recheck validation, comprehensive consistency checks.
+- Integration example and limits: server/counter/README.md.
+- Next: website integration and team agreement on unknown usage.
