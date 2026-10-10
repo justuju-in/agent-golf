@@ -16,7 +16,7 @@ updated: 2026-10-10
 - [ ] **Phase 2 — API, against a stand-in counter**
   - [x] 2.1 Stack skeleton (FastAPI, Jinja, SQLite, Python 3.12, pinned `server/requirements.txt`) and `GET /api/v1/me` exactly per `docs/spec.md`
   - [x] 2.2 Register page → key page: username + Hackattic username, key shown once, only its SHA-256 stored
-  - [ ] 2.3 Stand-in counter in `server/` (never `server/counter/`): the spec's `score()`, `NotPiLogError` and reason sets; gives ranked and unranked results
+  - [x] 2.3 Stand-in counter in `server/` (never `server/counter/`): the spec's `score()`, `NotPiLogError` and reason sets; gives ranked and unranked results
   - [ ] 2.4 Problem config, then `POST /api/v1/submissions` per `docs/spec.md`: checks, store file, call counter with the problem's setup, store result, reply
   - [ ] 2.5 `GET /api/v1/problems` per `docs/spec.md`, built from the problem config
 - [ ] **Phase 3 — Pages**
@@ -75,6 +75,7 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - Files: `server/standin_counter.py` and its tests (both deleted in 4.1)
 - Do: `score(session_text, problem, agreed, prior_folders)`, `NotPiLogError`, `UNRANKING_REASONS` and `WARNING_REASONS` as in "Contract: counter"; `session_id` and `cwd` from the header line when present; deterministic made-up metrics from the file hash; some files ranked, some unranked with reasons, one case with `missing_usage` and `total_tokens: null`; `folder_reused` when `cwd` is in `prior_folders`; `NotPiLogError` for text that is not JSON lines. With `agreed` `"any"`, skip that match; for model `"any"`, a made-up second model gives `model_switched`.
 - Acceptance: tests show a ranked result, an unranked one with reasons, `missing_usage` with a null total, `folder_reused`, `model_switched` under model `"any"`, and `NotPiLogError`.
+- Result (2026-10-11): `bash tools/check.sh` → `Ran 37 tests … OK`, `gate: ok` (11 new in `server/tests/test_standin_counter.py`: all six cases above, plus a warning-only result, a fixed setup matching, the reason sets against the spec's table, and the same text always giving the same result). On Amit's two redacted samples under `"any"`/`"any"`: `real-second-redacted` is clean, `real-zip-redacted` has only the `usage_not_recorded` warning.
 
 #### 2.4 Problem config and upload
 - Files: `server/` (problem config module, upload route, tests)
@@ -174,3 +175,4 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - 2026-10-10 — 2.1 done: FastAPI skeleton and `GET /api/v1/me`, tested locally by Anup. Later, not today: the tests print a Starlette deprecation warning about httpx; leave it, no dependency upgrades today.
 - 2026-10-11 — 2.2 done: register form and key page (Jinja templates, one CSS file, copy-button JS only); `create_user` now checks the Hackattic username (required, trimmed, at most 64 characters, no control characters).
 - 2026-10-11 — Merged `main` (810982a, c1b61da). The problem config allows `"any"` (`help_me_unpack` is `"any"`/`"any"` until Step 0); the stand-in follows `model_switched`; the board shows a model column only for model-`"any"` problems, as the spec says; the submission page always shows the model; 2.4 serves a plain JSON `/submissions/<id>` until 3.2.
+- 2026-10-11 — 2.3 done: `server/standin_counter.py` with the spec's names; numbers and verdicts made up from the file's SHA-256 (half clean; the rest not solved, no usage, a mid-session model and level switch, or a warning), `session_id` and `cwd` from the header. Made-up models are named `standin/…`, so its output is never mistaken for real scoring.
