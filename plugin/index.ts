@@ -2,12 +2,10 @@ import { readdir } from "node:fs/promises";
 import type {
   ExtensionAPI,
   ExtensionContext,
-} from "@earendil-works/pi-coding-agent";
-import type {
   CustomEntry,
   SessionEntry,
   SessionHeader,
-} from "@earendil-works/pi-coding-agent/dist/core/session-manager";
+} from "@earendil-works/pi-coding-agent";
 
 export const FOLDER_CHECK_CUSTOM_TYPE = "agent-golf-folder-check";
 export const FOLDER_CHECK_POLICY = "zero-directory-entries";
@@ -103,10 +101,14 @@ export async function recordFolderCheckForSession(
     metadata = observation("unknown", "inherited-session");
   } else if (
     (event.reason === "startup" || event.reason === "new") &&
-    !entries.some(
+    // Startup also fires when the CLI opens an existing session. Only known
+    // initialization entries are safe; all messages (including bash/tool
+    // results), usage, summaries, and unrecognized metadata mean we're too late.
+    entries.every(
       (entry) =>
-        entry.type === "message" &&
-        (entry.message.role === "user" || entry.message.role === "assistant"),
+        entry.type === "model_change" ||
+        entry.type === "thinking_level_change" ||
+        entry.type === "session_info",
     )
   ) {
     metadata = await observeFreshCwd(ctx.cwd);

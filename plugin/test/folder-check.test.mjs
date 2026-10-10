@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -155,6 +155,37 @@ test("existing session without evidence records unknown", async () => {
   assert.equal(getFolderWasEmptyUploadValue(session.ctx.sessionManager.getHeader(), session.ctx.sessionManager.getEntries()), undefined);
 });
 
+test("known initialization entries allow a fresh observation", async () => {
+  await withTempDir(async (dir) => {
+    const session = makeSession([
+      { type: "model_change", provider: "test", modelId: "test" },
+      { type: "thinking_level_change", thinkingLevel: "off" },
+      { type: "session_info", name: "Fresh attempt" },
+    ], { type: "session", id: "s", cwd: dir, timestamp: new Date().toISOString() });
+
+    await recordFolderCheckForSession(session.pi, { reason: "startup" }, session.ctx);
+    assert.equal(session.pi.appended[0].data.state, "empty");
+  });
+});
+
+for (const prior of [
+  { type: "message", message: { role: "bashExecution", command: "rm -f solution.py", output: "", exitCode: 0 } },
+  { type: "message", message: { role: "toolResult", toolName: "bash", content: [] } },
+  { type: "usage", usage: { totalTokens: 1 } },
+  { type: "compaction", summary: "Earlier work" },
+  { type: "custom", customType: "another-extension", data: {} },
+]) {
+  test(`prior ${prior.message?.role ?? prior.type} activity cannot certify an empty cwd`, async () => {
+    await withTempDir(async (dir) => {
+      const session = makeSession([prior], { type: "session", id: "old", cwd: dir, timestamp: "2026-10-01T00:00:00.000Z" });
+      await recordFolderCheckForSession(session.pi, { reason: "startup" }, session.ctx);
+      assert.equal(session.pi.appended[0].data.state, "unknown");
+      assert.equal(session.pi.appended[0].data.reason, "not-fresh:startup");
+      assert.equal(getFolderWasEmptyUploadValue(session.ctx.sessionManager.getHeader(), session.entries), undefined);
+    });
+  });
+}
+
 test("forked or inherited sessions cannot get fresh-attempt certification", async () => {
   await withTempDir(async (dir) => {
     const forkHeader = { type: "session", id: "fork", cwd: dir, timestamp: new Date().toISOString(), parentSession: "/old/session.jsonl" };
@@ -199,6 +230,53 @@ test("session switching does not reuse another session's observation", async () 
   });
 });
 
+async function runPiProbe({ cwd, pluginPath, probePath, sessionDir, configDir, sessionFile, resultPath }) {
+  const child = spawn(
+    "pi",
+    [
+      "--mode", "rpc", "--offline", "--no-extensions", "--no-mcp",
+      "--no-skills", "--no-prompt-templates", "--no-context-files",
+      "--session-dir", sessionDir,
+      ...(sessionFile ? ["--session", sessionFile] : []),
+      "--extension", pluginPath, "--extension", probePath,
+    ],
+    {
+      cwd,
+      env: { ...process.env, PI_CODING_AGENT_DIR: configDir, PI_TELEMETRY: "0" },
+      stdio: ["pipe", "pipe", "pipe"],
+    },
+  );
+
+  let stderr = "";
+  let closed = false;
+  let spawnError;
+  const closePromise = new Promise((resolveClose) => {
+    child.once("close", () => {
+      closed = true;
+      resolveClose();
+    });
+  });
+  child.once("error", (error) => { spawnError = error; });
+  child.stdout.resume();
+  child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
+
+  try {
+    const deadline = Date.now() + 15_000;
+    while (!existsSync(resultPath) && !closed && !spawnError && Date.now() < deadline) {
+      await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+    }
+    assert.equal(spawnError, undefined, `Unable to start Pi: ${spawnError?.message}`);
+    assert.equal(existsSync(resultPath), true, `Pi probe failed or timed out: ${stderr}`);
+    return JSON.parse(await readFile(resultPath, "utf8"));
+  } finally {
+    child.stdin.end();
+    if (!closed) child.kill("SIGTERM");
+    const forceKill = setTimeout(() => { if (!closed) child.kill("SIGKILL"); }, 2_000);
+    forceKill.unref();
+    try { await closePromise; } finally { clearTimeout(forceKill); }
+  }
+}
+
 test("isolated Pi smoke: metadata is session state and excluded from model context", async () => {
   await withTempDir(async (dir) => {
     const probePath = join(dir, "probe.ts");
@@ -213,56 +291,31 @@ test("isolated Pi smoke: metadata is session state and excluded from model conte
       `import { writeFileSync } from "node:fs";\n\nexport default function (pi) {\n  pi.on("session_start", async (_event, ctx) => {\n    const entries = ctx.sessionManager.getEntries();\n    const folderEntries = entries.filter((entry) => entry.type === "custom" && entry.customType === "agent-golf-folder-check");\n    const projection = ctx.sessionManager.buildSessionProjection();\n    writeFileSync(${JSON.stringify(resultPath)}, JSON.stringify({\n      folderEntryCount: folderEntries.length,\n      folderState: folderEntries[0]?.data?.state,\n      projectedMessages: projection.messages.length,\n      usageEntries: entries.filter((entry) => entry.type === "usage").length,\n      assistantMessages: entries.filter((entry) => entry.type === "message" && entry.message?.role === "assistant").length\n    }));\n  });\n}\n`,
     );
 
-    const child = spawn(
-      "pi",
-      [
-        "--mode",
-        "rpc",
-        "--offline",
-        "--no-extensions",
-        "--no-skills",
-        "--no-prompt-templates",
-        "--no-context-files",
-        "--session-dir",
-        sessionDir,
-        "--extension",
-        pluginPath,
-        "--extension",
-        probePath,
-      ],
-      { cwd, stdio: ["ignore", "pipe", "pipe"] },
-    );
-
-    let stderr = "";
-    let exited = false;
-    const exitPromise = new Promise((resolveExit) => {
-      child.once("exit", (code, signal) => {
-        exited = true;
-        resolveExit({ code, signal });
-      });
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
+    const configDir = join(dir, "config");
+    const result = await runPiProbe({ cwd, pluginPath, probePath, sessionDir, configDir, resultPath });
+    assert.deepEqual(result, {
+      folderEntryCount: 1,
+      folderState: "empty",
+      projectedMessages: 0,
+      usageEntries: 0,
+      assistantMessages: 0,
     });
 
-    try {
-      const deadline = Date.now() + 15_000;
-      while (!existsSync(resultPath) && !exited && Date.now() < deadline) {
-        await new Promise((resolveWait) => setTimeout(resolveWait, 100));
-      }
-      assert.equal(existsSync(resultPath), true, stderr);
-      const result = JSON.parse(await (await import("node:fs/promises")).readFile(resultPath, "utf8"));
-
-      assert.deepEqual(result, {
-        folderEntryCount: 1,
-        folderState: "empty",
-        projectedMessages: 0,
-        usageEntries: 0,
-        assistantMessages: 0,
-      });
-    } finally {
-      if (!exited) child.kill("SIGTERM");
-      await exitPromise;
-    }
+    // CLI --session uses startup, not the in-process resume event. Verify a
+    // persisted bash-only session cannot be certified from today's empty cwd.
+    const sessionFile = join(sessionDir, "old-session.jsonl");
+    await writeFile(sessionFile, [
+      { type: "session", version: 3, id: "old-session", cwd, timestamp: "2026-10-01T00:00:00.000Z" },
+      { type: "message", id: "bash1", parentId: null, timestamp: "2026-10-01T00:00:01.000Z", message: {
+        role: "bashExecution", command: "rm -f solution.py", output: "", exitCode: 0,
+        cancelled: false, truncated: false, timestamp: 1790812801000,
+      } },
+    ].map((entry) => JSON.stringify(entry)).join("\n") + "\n");
+    await rm(resultPath);
+    const reopened = await runPiProbe({ cwd, pluginPath, probePath, sessionDir, configDir, sessionFile, resultPath });
+    assert.equal(reopened.folderEntryCount, 1);
+    assert.equal(reopened.folderState, "unknown");
+    assert.equal(reopened.usageEntries, 0);
+    assert.equal(reopened.assistantMessages, 0);
   });
 });

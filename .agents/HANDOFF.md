@@ -5,7 +5,8 @@ Updated: 2026-10-10 (Agent Golf plugin step 1.5 on feature/golf-folder-check)
 ## Active work
 - Plan: `.agents/plans/004-plugin-and-deploy.md` — step 1.5 implemented in this worktree for later integration into `feature/plan-004`.
 - Owner: Prateek; branch: `feature/golf-folder-check`.
-- Implementation commit: this checkpoint commit (`plan 004 step 1.5: record folder observation`).
+- Folder observation commit: `ad814f9` (rebased onto current `feature/plan-004`).
+- Review fixes approved for checkpoint and integration; see the plan changelog.
 - Running: nothing; temporary Pi smoke-test processes are stopped.
 
 ## Verified
@@ -21,24 +22,26 @@ Updated: 2026-10-10 (Agent Golf plugin step 1.5 on feature/golf-folder-check)
   - forked/inherited sessions → `unknown` / no future upload certification, even if copied metadata says `empty`
   - filesystem read failure → `unknown` with `read-failed...`
   - session switching uses the current session only, not cached global state
-- Isolated Pi RPC smoke test starts Pi with the plugin and a probe extension, makes zero model calls, and verifies one `agent-golf-folder-check` custom entry exists in session state while `buildSessionProjection().messages` has zero model-context messages, zero usage entries, and zero assistant messages.
+- Review-fix run: `bash tools/check.sh` passed all 16 tests; `git diff --check` passed. Added prior bash/tool/usage/compaction/custom activity regressions and real CLI reopening of a bash-only JSONL.
+- Pi smoke uses temporary config, disables MCP/discovery, drains stdout, handles spawn errors and force-kills stalled shutdown. Fresh sessions have one observation with zero projected messages; reopened bash-only sessions yield unknown. Neither run invokes the model.
 
 ## Decisions
-- Use `session_start`, but do not trust the hook alone as freshness: Pi uses it for startup, reload, resume, new, and fork. The implementation checks event reason, session header `parentSession`, and whether the current session already contains user/assistant conversation entries.
+- Use `session_start`, but do not trust the hook alone as freshness: Pi uses it for startup, reload, resume, new, and fork. Check reason, `parentSession`, and allow only known initialization entries before observing cwd.
 - Store metadata via `pi.appendEntry("agent-golf-folder-check", data)` as a custom entry excluded from model context.
 - Never overwrite an existing valid observation in the current session.
-- Fresh certification is conservative: only startup/new sessions with no user/assistant conversation and no `parentSession` inspect `ctx.cwd`; forked/inherited sessions and existing conversations without evidence record `unknown`.
+- Fresh observation permits only startup/new sessions with no `parentSession` and only known initialization entries (model/thinking changes, session name). Any other prior activity, including bash/tool results, yields `unknown` without inspecting cwd.
 - Future submit code should use `getFolderWasEmptyUploadValue(header, entries)`: returns `"true"` for `empty`, `"false"` for `nonempty`, and omits for `unknown`/absent/`parentSession`.
 
 ## Limitations / open questions
 - This is a trusted-student MVP signal, not tamper-proof evidence; session JSONL can be edited by a user.
 - Pi does not flush custom-only sessions to disk until a conversation entry exists, so the smoke test verifies session-state persistence and model-context exclusion with zero model calls; normal attempts will persist the entry when the first user/assistant message causes the session file to flush.
-- Step 1.2 login API and server-origin contract are still pending with the website owner.
+- `/api/v1/me` is agreed in `docs/spec.md` on main (`2fd07a1`), included in both rebased feature branches: Bearer key, 200 username JSON, 401 for missing/malformed/invalid credentials. Production origin remains unresolved.
+- Anup owns website, Docker and deployment (plan 002); Prateek owns plugin and publishing (plan 004).
 - Website API is not implemented; use a mock for future plugin upload development.
 - Step 0 (plan 001) remains pending: competition model/thinking level TBD, three redacted logs and sample notes missing.
 
 ## Next action
-Push/review this step 1.5 checkpoint, then integrate/cherry-pick into `feature/plan-004` if desired. After that, return to step 1.2 once the login API contract is agreed.
+Fast-forward the approved folder-check checkpoint into `feature/plan-004`, then refresh the handoff before login against a mock API.
 
 ## Read next
 1. `.agents/plans/004-plugin-and-deploy.md`
