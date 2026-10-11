@@ -21,13 +21,18 @@ RUN pip install -r /app/server/requirements.txt
 # `server.counter` import as in the repo. Owned by root: the app cannot change its code.
 COPY . /app/server
 
-# The app runs as golf (uid 10001), which may write only its data directory: the
-# default one, server/data/ (empty here, as .dockerignore leaves out the local one).
-RUN groupadd --system --gid 10001 golf \
- && useradd --system --uid 10001 --gid golf --no-create-home --home-dir /nonexistent \
+# The app runs as golf (uid 10001), which may write only /data.
+RUN groupadd --gid 10001 golf \
+ && useradd --uid 10001 --gid golf --no-create-home --home-dir /nonexistent \
     --shell /usr/sbin/nologin golf \
- && mkdir /app/server/data \
- && chown golf:golf /app/server/data
+ && mkdir /data \
+ && chown golf:golf /data
+
+# The database and uploaded logs live in a volume (plan 002, 5.2), so they outlive the
+# container and are never in the image. A new named volume takes /data's owner (golf);
+# a bind mount must be writable by uid 10001.
+ENV AGENT_GOLF_DATA_DIR=/data
+VOLUME /data
 USER golf
 
 EXPOSE 8000

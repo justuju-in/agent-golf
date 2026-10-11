@@ -65,7 +65,15 @@ One image holds the website and the counter. From the repo root:
 
 ```bash
 docker build -t agent-golf server/
-docker run -d --name agent-golf -p 8000:8000 agent-golf
+docker run -d --name agent-golf -p 8000:8000 -v agent-golf-data:/data agent-golf
 ```
 
-Then open http://localhost:8000/register. The image copies `server/` to `/app/server`, leaving out what `.dockerignore` lists (`data/`, `tests/`, review notes and bytecode), installs `requirements.txt`, and runs `uvicorn server.app:app` on port 8000 as the non-root user `golf` (uid 10001), which can write only the data directory. Add `-e AGENT_GOLF_API_BASE_URL=…` when the site is reached at another origin than `http://localhost:8000`. Until the data volume (plan 002, step 5.2), the database stays inside the container.
+Then open http://localhost:8000/register. The image copies `server/` to `/app/server`, leaving out what `.dockerignore` lists (`data/`, `tests/`, review notes and bytecode), installs `requirements.txt`, and runs `uvicorn server.app:app` on port 8000 as the non-root user `golf` (uid 10001), which can write only `/data`. Add `-e AGENT_GOLF_API_BASE_URL=…` when the site is reached at another origin than `http://localhost:8000`.
+
+The image sets `AGENT_GOLF_DATA_DIR=/data`, a volume, so the database and uploaded logs are never in the image or in the container itself. The named volume `agent-golf-data` keeps them across `docker restart` and across a new container from a new image; `docker volume rm agent-golf-data` deletes them. A new named volume starts empty and owned by `golf`; a bind mount (`-v /some/dir:/data`) must be writable by uid 10001. Without `-v`, Docker makes an anonymous volume that a new container does not reuse.
+
+A scripted test user, as above but inside the container, so in its `/data`:
+
+```bash
+KEY=$(docker exec agent-golf python -m server.users alice alice_hackattic)
+```
