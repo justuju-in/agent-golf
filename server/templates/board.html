@@ -17,9 +17,13 @@
     <h1>Board</h1>
     <p>No problems are open yet.</p>
 {%- else %}
+    <p class="prompt-line" aria-hidden="true">$ golf board <span class="arg">{{ problem.slug }}</span></p>
     <h1>{{ problem.title }}</h1>
-    <p class="setup">Setup: {{ pages.setup_text(problem) }}</p>
-    <p class="scoring">{{ pages.SCORING }}</p>
+    <div class="meta">
+      <p class="setup">Setup: <strong>{{ pages.setup_text(problem) }}</strong></p>
+      <p class="scoring"><strong>{{ pages.SCORING }}</strong></p>
+      <p class="live">live, updates every 30 s</p>
+    </div>
   {%- if others %}
     <p class="other-boards">Other boards:
     {%- for other in others %} <a href="/problems/{{ other.slug }}">{{ other.title }}</a>{{ "," if not loop.last }}{% endfor %}</p>
@@ -48,13 +52,13 @@
         </thead>
         <tbody>
         {%- for row in board.ranked %}
-          <tr>
+          <tr{% if row.rank == 1 %} class="leader"{% endif %}>
             <td class="num rank">{{ row.rank }}</td>
             <th scope="row"><a href="/submissions/{{ row.id }}">{{ row.username }}</a></th>
             {%- if show_model %}
             <td class="model">{{ pages.names(row.metrics.models) }}</td>
             {%- endif %}
-            <td class="num">{{ pages.number(row.metrics.total_tokens) }}</td>
+            <td class="num tokens">{{ pages.number(row.metrics.total_tokens) }}</td>
             <td class="num">{{ pages.number(row.metrics.prompts) }}</td>
             <td class="num">{{ pages.number(row.metrics.chars_typed) }}</td>
             <td class="num">{{ pages.number(row.metrics.tool_calls) }}</td>
@@ -82,7 +86,7 @@
         {%- for row in board.unranked %}
           <tr>
             <th scope="row"><a href="/submissions/{{ row.id }}">{{ row.username }}</a></th>
-            <td>
+            <td class="why">
               {%- for code in pages.unranking(row.reasons) %}{{ pages.reason_label(code) }}{{ ", " if not loop.last }}{% endfor -%}
             </td>
             <td><time datetime="{{ row.submitted_at }}">{{ pages.ago(row.submitted_at, now) }}</time></td>

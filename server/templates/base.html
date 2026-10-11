@@ -10,7 +10,7 @@
 <body{% block body_class %}{% endblock %}>
   <header class="site-header">
     <div class="wrap">
-      <span class="site-name">Agent Golf</span>
+      <span class="site-name"><span class="prompt" aria-hidden="true">&gt; </span>agent-golf<span class="cursor" aria-hidden="true">_</span></span>
       {#- Every board sets active_page. #}
       <nav aria-label="Main">
         <a href="/"{% if active_page == "board" %} aria-current="page"{% endif %}>Board</a>

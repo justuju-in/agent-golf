@@ -5,7 +5,7 @@
 {% block main %}
 {%- set metrics = submission.metrics %}
     <h1>Submission by {{ submission.username }}</h1>
-    <p class="standing">
+    <p class="standing{% if not rank and submission.status != 'ranked' %} unranked{% endif %}">
       {%- if rank %}Ranked #{{ rank }}
       {%- elif submission.status == "ranked" %}Ranked (not your best attempt)
       {%- else %}Unranked
