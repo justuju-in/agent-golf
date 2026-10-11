@@ -39,7 +39,7 @@ curl -s -i -H "Authorization: Bearer $KEY" -F problem=help_me_unpack -F session=
   http://localhost:8000/api/v1/submissions
 ```
 
-Add `-F folder_was_empty=true` (or `false`) to send what the plugin records; it is stored and has no effect on ranking. The reply is "Contract: website → plugin" in [`../docs/spec.md`](../docs/spec.md): `200` with `ranked` or `unranked`, or `401`, `400` or `413` with `rejected` and a reason; `500` means a counter bug. Its `url` opens the submission's page. The same file again returns the stored entry; the same session again replaces it, keeping its `url`. The raw file is kept in `uploads/` in the data directory and never served.
+Add `-F folder_was_empty=true` (or `false`) to send what the plugin records; it is stored and has no effect on ranking. The reply is "Contract: website → plugin" in [`../docs/spec.md`](../docs/spec.md): `200` with `ranked` or `unranked`, or `401`, `400` or `413` with `rejected` and a reason; `500` means a counter bug. Its `url` opens the submission's page. The same file again returns the stored entry; the same session again replaces it, keeping its `url`. The raw file is kept in `uploads/` in the data directory, readable only by the server's user (mode 0600), and never served.
 
 Until step 4.1, scoring is the stand-in in `standin_counter.py`: made-up numbers and verdicts, models named `standin/…`. Problems and their setup live in `problems.py`; only problems whose model and thinking level are set are accepted.
 
@@ -65,10 +65,10 @@ One image holds the website and the counter. From the repo root:
 
 ```bash
 docker build -t agent-golf server/
-docker run -d --name agent-golf -p 8000:8000 -v agent-golf-data:/data agent-golf
+docker run -d --name agent-golf -p 127.0.0.1:8000:8000 -v agent-golf-data:/data agent-golf
 ```
 
-Then open http://localhost:8000/register. The image copies `server/` to `/app/server`, leaving out what `.dockerignore` lists (`data/`, `tests/`, review notes and bytecode), installs `requirements.txt`, and runs `uvicorn server.app:app` on port 8000 as the non-root user `golf` (uid 10001), which can write only `/data`. Add `-e AGENT_GOLF_API_BASE_URL=…` when the site is reached at another origin than `http://localhost:8000`.
+Then open http://localhost:8000/register. `127.0.0.1:` keeps the container's plain-HTTP port on this machine only; on the live host the HTTPS proxy is the only way in, so never publish it as `-p 8000:8000`. The image copies `server/` to `/app/server`, leaving out what `.dockerignore` lists (`data/`, `tests/`, review notes, bytecode, and any `*.db`, `*.sqlite`, `.env` or `uploads/`), installs `requirements.txt`, and runs `uvicorn server.app:app` on port 8000 as the non-root user `golf` (uid 10001), which can write only `/data`. Add `-e AGENT_GOLF_API_BASE_URL=…` when the site is reached at another origin than `http://localhost:8000`.
 
 The image sets `AGENT_GOLF_DATA_DIR=/data`, a volume, so the database and uploaded logs are never in the image or in the container itself. The named volume `agent-golf-data` keeps them across `docker restart` and across a new container from a new image; `docker volume rm agent-golf-data` deletes them. A new named volume starts empty and owned by `golf`; a bind mount (`-v /some/dir:/data`) must be writable by uid 10001. Without `-v`, Docker makes an anonymous volume that a new container does not reuse.
 

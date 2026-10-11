@@ -311,6 +311,11 @@ td time {
   white-space: nowrap;
 }
 
+/* Model ids such as anthropic/claude-sonnet-4-5 stay on one line; the table scrolls instead. */
+td.model {
+  white-space: nowrap;
+}
+
 .how-to {
   margin-top: 2.5em;
   padding-top: 1em;

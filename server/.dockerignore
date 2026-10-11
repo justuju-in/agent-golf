@@ -12,3 +12,9 @@ data/
 
 # Tests; the site does not need them.
 tests/
+
+# What the root .gitignore keeps private, at any depth: local databases, env files, uploads.
+**/*.db
+**/*.sqlite
+**/.env
+**/uploads/

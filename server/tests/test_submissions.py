@@ -3,6 +3,8 @@
 import hashlib
 import json
 import logging
+import os
+import stat
 import tempfile
 import unittest
 import uuid
@@ -394,6 +396,17 @@ class SubmissionsTest(UploadTestCase):
         # Its own folder is not a reuse.
         self.assertEqual(self.counter.calls[-1], ("help_me_unpack", AGREED, set()))
         self.assertNotIn("folder_reused", second["reasons"])
+
+    def test_stored_log_is_private(self):
+        # Even under a permissive umask, only the server's own user can read a raw log.
+        self.addCleanup(os.umask, os.umask(0))
+        self.upload(session(turns=1))
+        (row,) = self.rows()
+        path = self.settings.uploads_dir / f"{row['id']}.jsonl"
+        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+        # A resubmission's new copy too.
+        self.upload(session(turns=2))
+        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
 
     def test_resubmitting_for_another_problem_replaces(self):
         content = session()

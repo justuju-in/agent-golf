@@ -150,12 +150,21 @@ def prior_folders(conn: sqlite3.Connection, user_id: int, session_id: str) -> se
     return {row["cwd"] for row in rows}
 
 
+UPLOAD_FILE_MODE = 0o600  # raw logs can hold Hackattic tokens, prompts and local paths
+
+
 def save_upload(uploads_dir: Path, submission_id: int, data: bytes) -> None:
-    """The raw file as uploads/<id>.jsonl, replacing an earlier copy of the session whole."""
+    """The raw file as uploads/<id>.jsonl, readable only by the server's own user,
+    replacing an earlier copy of the session whole."""
     uploads_dir.mkdir(parents=True, exist_ok=True)
     path = uploads_dir / f"{submission_id}.jsonl"
     partial = path.with_suffix(".partial")
-    partial.write_bytes(data)
+    # Created 0600, so the log is never readable by other accounts, not even briefly.
+    fd = os.open(partial, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, UPLOAD_FILE_MODE)
+    with os.fdopen(fd, "wb") as file:
+        file.write(data)
+    # Exactly 0600 whatever the umask, also for a .partial left by an older crash.
+    os.chmod(partial, UPLOAD_FILE_MODE)
     os.replace(partial, path)
 
 
