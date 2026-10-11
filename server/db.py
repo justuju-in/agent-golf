@@ -1,8 +1,11 @@
 """SQLite storage. Parameterized queries only."""
 
+import os
 import sqlite3
 from contextlib import closing
 from pathlib import Path
+
+DB_FILE_MODE = 0o600  # the database holds key hashes, session folders and Hackattic usernames
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -44,7 +47,12 @@ def connect(db_path: Path) -> sqlite3.Connection:
 
 
 def init_db(db_path: Path) -> None:
-    """Create the data directory and the tables if they do not exist yet."""
+    """Create the data directory, the database file (0600) and the tables if they do not exist yet."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
+    # Create the file 0600 before SQLite opens it (an empty file is an empty database), so
+    # other accounts can never read it, and set an existing one to exactly 0600 whatever the
+    # umask. SQLite gives its journal and WAL files the database file's mode.
+    os.close(os.open(db_path, os.O_RDWR | os.O_CREAT, DB_FILE_MODE))
+    os.chmod(db_path, DB_FILE_MODE)
     with closing(connect(db_path)) as conn:
         conn.executescript(SCHEMA)

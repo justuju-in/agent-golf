@@ -14,7 +14,7 @@ uv pip install -r server/requirements.txt   # again whenever requirements.txt ch
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `AGENT_GOLF_DATA_DIR` | `server/data/` (beside this file, whatever the current directory; ignored by git) | SQLite database, and uploaded logs in `uploads/` (never served). Created at startup if missing. |
+| `AGENT_GOLF_DATA_DIR` | `server/data/` (beside this file, whatever the current directory; ignored by git) | SQLite database, and uploaded logs in `uploads/` (never served). Created at startup if missing. The database and every stored log are readable only by the server's user (mode 0600); startup also sets an existing database to 0600. |
 | `AGENT_GOLF_API_BASE_URL` | `http://localhost:8000` | Public origin, for absolute links in upload replies. Live: `https://agent-golf.justuju.in`. |
 
 ## Register
