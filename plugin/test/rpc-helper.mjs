@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 
-export function startPi({ cwd, env, sessionDir, sessionFile, onRecord = () => {} }) {
+export function startPi({ cwd, env, sessionDir, sessionFile, installedPackages = false, onRecord = () => {} }) {
   const child = spawn("pi", [
-    "--mode", "rpc", "--offline", "--no-extensions", "--no-mcp", "--no-skills",
-    "--no-prompt-templates", "--no-context-files", "--extension", resolve("index.ts"),
+    "--mode", "rpc", "--offline", ...(installedPackages ? [] : ["--no-extensions"]), "--no-mcp", "--no-skills",
+    "--no-prompt-templates", "--no-context-files", ...(installedPackages ? [] : ["--extension", resolve("index.ts")]),
     "--session-dir", sessionDir, ...(sessionFile ? ["--session", sessionFile] : []),
   ], { cwd, env: { ...process.env, ...env, PI_TELEMETRY: "0" }, stdio: ["pipe", "pipe", "pipe"] });
   const pending = new Map();

@@ -1,7 +1,7 @@
 // Opt-in: Anup's website checkout with its pinned requirements installed.
 // AGENT_GOLF_WEBSITE_DIR=/absolute/website-checkout npm --prefix plugin test
 import assert from "node:assert/strict";
-import { execFile, spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdtemp, mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -9,39 +9,10 @@ import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { test } from "node:test";
 import { startPi } from "./rpc-helper.mjs";
+import { startWebsite } from "./website-helper.mjs";
 
 const execute = promisify(execFile);
 const websiteDir = process.env.AGENT_GOLF_WEBSITE_DIR;
-
-function startWebsite(directory, env) {
-  const child = spawn(join(directory, ".venv", "bin", "python"), [
-    "-m", "uvicorn", "server.app:app", "--host", "127.0.0.1", "--port", "0", "--no-access-log",
-  ], { cwd: directory, env, stdio: ["ignore", "pipe", "pipe"] });
-  const closed = new Promise((resolveClose) => child.once("close", resolveClose));
-  const origin = new Promise((resolveOrigin, reject) => {
-    let output = "";
-    const timer = setTimeout(() => reject(new Error("Local website did not become ready")), 15_000);
-    const finish = (callback, value) => { clearTimeout(timer); callback(value); };
-    const inspect = (chunk) => {
-      output = (output + chunk.toString()).slice(-16_384);
-      const match = /http:\/\/127\.0\.0\.1:([1-9][0-9]*)/.exec(output);
-      if (match) finish(resolveOrigin, match[0]);
-    };
-    child.stdout.on("data", inspect);
-    child.stderr.on("data", inspect);
-    child.once("error", () => finish(reject, new Error("Local website failed to start")));
-    child.once("close", () => finish(reject, new Error("Local website stopped")));
-  });
-  return {
-    origin,
-    stop: async () => {
-      if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
-      const timer = setTimeout(() => child.kill("SIGKILL"), 2_000);
-      timer.unref();
-      try { await closed; } finally { clearTimeout(timer); }
-    },
-  };
-}
 
 test("real website /me: Pi login, invalid key, offline server and missing-key guidance", {
   skip: websiteDir ? false : "set AGENT_GOLF_WEBSITE_DIR to a prepared website checkout",

@@ -1,53 +1,82 @@
-# plugin
+# Agent Golf for Pi
 
-Pi extension adding `/golf-login`, `/golf-submit` and `/golf-problems`. It only uploads the raw session file and never calls the model. Plan: [`../.agents/plans/004-plugin-and-deploy.md`](../.agents/plans/004-plugin-and-deploy.md).
+Pi commands for the Agent Golf coding-agent leaderboard. Login, browsing and submission never call a model or compute scores locally.
 
-## Development
+**Initial release: preview (0.1.0).** Installation, UI, transport and privacy are verified. At initial publication, production API availability and real counter integration were not verified; local website tests used stand-in scores. This is for integration testing, not competition scoring until your organizer confirms a deployed, verified real counter.
 
-From the repo root, load the extension with the confirmed default API origin, `https://agent-golf.justuju.in`:
+## Install and update
 
-```bash
-pi --extension ./plugin/index.ts
-```
-
-For local testing, override the origin explicitly:
+Requires Node.js 22.19+ and the Pi coding agent (tested with Pi 1.1.0).
 
 ```bash
-AGENT_GOLF_API_BASE_URL=http://localhost:8000 pi --extension ./plugin/index.ts
+pi install npm:agent-golf@preview
 ```
 
-The server must implement the endpoints in the [spec](../docs/spec.md). Both login and submit use the same origin configuration. Only HTTPS or loopback HTTP origins are accepted, and redirects are refused. An empty or invalid override is an error: it never silently falls back to production. Loading the extension alone makes no HTTP requests.
+Use an organizer-provided trusted test server via the override below until production is ready. Once the team announces a stable release, install `npm:agent-golf` to follow `latest` instead.
 
-Run `/golf-login <student-key>` in Pi. After validation, credentials are stored separately per origin in `~/.config/agent-golf/credentials.json` (directory 0700, file 0600). This file contains the original key so the client can authenticate; do not share or commit it. Failed login leaves existing credentials intact. Changing the configured origin never reuses or migrates another origin's key; log in for the new origin. Credential writes are atomic and serialized within one Pi process, not coordinated across separate Pi processes.
-
-Run `/golf-problems` to browse public contest rules and problem setup. It first opens the rules in a temporary plain-text view, then lets you choose a problem for its URL, instructions, model and thinking level. Closing a detail view returns to the list; cancel the list to exit. Empty lists still show the rules. Pi's built-in multi-line editor supplies these scrollable views in both interactive and RPC modes; all edits are discarded and never inserted into your prompt or session. `any` setup is shown as "any model, one per session" / "any thinking level". Browsing sends no key, cookie or log, changes no setup, and does not bind or start an attempt. The catalogue is advisory; submission checks are authoritative. Replies are bounded to 64 KB and strings to 1,000 Unicode characters, with terminal-control/unsafe URL checks and no markup rendering.
-
-Run `/golf-submit help_me_unpack` from your saved attempt session. Pi must be idle, and all user Bash commands (`!` / RPC `bash`) must have recorded their results. A confirmation shows the server, problem and file size, and warns that the complete raw log may contain tokens, prompts and local paths. Cancelling sends nothing. If the session changes while confirmation is open, submission is refused; try again when idle.
-
-User Bash starts are tracked with custom session metadata containing only a SHA-256 command hash, outside model context. A start stays pending until a matching Bash result is recorded; the guard is reconstructed from session entries after reload. If a start has no recorded result (for example, another extension blocks execution), submission fails closed rather than guessing that the attempt is complete.
-
-Submission uploads unchanged JSONL bytes (including abandoned branches), using only the credential saved for the configured origin. Known folder observations are sent as the optional `folder_was_empty` field; unknown/inherited observations are omitted. The plugin displays the server's status, reasons, metrics and link without computing scores. A null total paired with `missing_usage` is shown as `Tokens: unknown`, never zero. `usage_not_recorded` and `model_switched` are displayed with the server's verdict; the plugin does not decide eligibility or change the chosen model. It refuses redirects, makes no automatic retries, and warns about uncertain delivery after a network failure. Check the website before retrying.
-
-Run `bash tools/check.sh` to exercise login, submission and problem browsing against temporary mock servers and isolated Pi sessions. Tests use disposable keys and temporary credential directories; no real API or credentials are required. Node 22.19+ and `pi` on PATH are required.
-
-### Optional real website login test
-
-From the repo root, prepare Anup's website in a separate worktree (never merge its implementation into the plugin branch):
+Start a new Pi process, or run `/reload` in an existing one. To update an unpinned installation:
 
 ```bash
-git fetch origin
-git worktree add --detach ../agent-golf-website-test origin/feature/plan-002
-python3.12 -m venv ../agent-golf-website-test/.venv
-../agent-golf-website-test/.venv/bin/python -m pip install -r ../agent-golf-website-test/server/requirements.txt
-AGENT_GOLF_WEBSITE_DIR="$(realpath ../agent-golf-website-test)" bash tools/check.sh
+pi update --extensions
 ```
 
-The opt-in test creates a disposable user through the website CLI, starts the real API on an ephemeral loopback port, and exercises Pi login success, invalid-key and offline-server failures, plus missing-key submission guidance. It checks private credential permissions, preservation after failures, zero model calls and unchanged session state. Keys are captured privately, not printed. The server is stopped and temporary data/credentials are deleted afterward. Normal gate runs skip this test when `AGENT_GOLF_WEBSITE_DIR` is absent; they still run all mock and isolated Pi tests.
+Restart Pi or `/reload` afterward. An exact version such as `npm:agent-golf@0.1.0` is pinned; updating does not advance it to a different version. The `npm:agent-golf@preview` installation follows the preview channel; it does not automatically switch to `latest`.
 
-The prepared website checkout remains available for reruns. Remove it when finished:
+## Commands
+
+### `/golf-problems`
+
+Browse public contest rules, challenge URLs, instructions and each problem's model/thinking setup. Rules open first, followed by a problem selector. Close a detail view to return to the list; cancel the list to exit. An empty list still shows the rules.
+
+Views use Pi's temporary plain-text multi-line editor in interactive or supported RPC clients. All edits are discarded; nothing is inserted into your prompt or session. `any` setup is displayed as "any model, one per session" or "any thinking level".
+
+Browsing sends no key, cookie or session log, makes no model calls, and never starts/binds an attempt or changes your setup. The catalogue is advisory; server submission checks are authoritative. Replies are bounded to 64 KB and strings to 1,000 Unicode characters, with terminal-safety and exact Hackattic URL checks.
+
+### `/golf-login <student-key>`
+
+Use the key provided by the Agent Golf website. Validation succeeds before anything is saved. Invalid keys and network/server failures preserve any existing saved credentials.
+
+Credentials are stored separately per server origin in `~/.config/agent-golf/credentials.json`, with directory mode 0700 and file mode 0600. This file contains the original key so the client can authenticate: never share or commit it. Writes are atomic within one Pi process, but are not locked across separate Pi processes. Changing origins never reuses or migrates another server's key.
+
+### `/golf-submit <problem-slug>`
+
+For example:
+
+```text
+/golf-submit help_me_unpack
+```
+
+Submit from the saved session where you solved the problem. Pi must be idle and all user Bash commands must have recorded their results. Confirm the problem, server, byte size and privacy warning before upload; cancelling sends nothing.
+
+**Privacy:** submission uploads the complete unchanged raw JSONL, including abandoned branches. It may contain prompts, local paths, Hackattic access tokens and other sensitive material. Only submit to a server you trust. The website must keep raw logs private; public leaderboard rows should show only permitted identity, metrics and verdicts.
+
+If the session or file changes during confirmation, submission is refused. Folder observations, when known, are sent as informational metadata, not proof that an attempt is eligible. Unknown/forked observations are omitted. User Bash starts are tracked by command hashes outside model context; missing recorded results block submission rather than guessing completion.
+
+The server owns scores and status. A null total with `missing_usage` is displayed as `Tokens: unknown`, never zero. Warnings and model-switch reasons are displayed without client-side reranking.
+
+## Server configuration
+
+Default API origin: **https://agent-golf.justuju.in**.
+
+For a trusted local server:
 
 ```bash
-git worktree remove --force ../agent-golf-website-test
+AGENT_GOLF_API_BASE_URL=http://127.0.0.1:8000 pi
 ```
 
-Student install steps go here once publishing is implemented.
+Both authentication and browsing/submission use this origin. Only HTTPS and loopback HTTP are accepted; no credentials, API path, query or fragment belong in the origin. Empty/invalid overrides fail closed and never fall back silently to production. Redirects are refused. Loading the extension alone makes no HTTP requests.
+
+## Troubleshooting
+
+- **No key saved:** run `/golf-login <student-key>` for the configured server.
+- **Invalid key:** retry with your registered key; existing credentials remain unchanged.
+- **Problem list unavailable:** check the configured origin and server availability; the endpoint may not yet be available.
+- **Pi busy or pending Bash:** wait for the response/Bash result to finish recording.
+- **No persisted session file:** submit from the saved attempt, not a fresh custom-only session that has not flushed to disk.
+- **Upload/network error:** the upload may already have reached the server. Check the website before retrying. The plugin never retries automatically.
+
+Removing the preview with `pi remove npm:agent-golf@preview` (use the source you installed) does not remove your credential file. Delete that file separately only if you intend to discard saved logins.
+
+## License
+
+MIT for this plugin. This package contains no website/backend implementation or private repository material.
