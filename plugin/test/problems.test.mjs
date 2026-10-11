@@ -30,7 +30,7 @@ async function fixture(t) {
   const selections = [];
   let select = async () => undefined;
   const ctx = {
-    hasUI: true,
+    hasUI: true, mode: "rpc",
     get sessionManager() { throw new Error("browser must not access sessions"); },
     ui: {
       editor: async (title, prefill) => { editors.push({ title, prefill }); return "DISCARDED_EDIT"; },
@@ -72,6 +72,26 @@ test("public browser shows rules, details and any setup; edits are discarded", a
   assert.ok(f.editors[1].prefill.includes(DATA.problems[0].instructions[0]));
   assert.ok(f.editors.every((view) => !view.prefill.includes("DISCARDED_EDIT")));
   assert.ok(f.editors.every((view) => view.prefill.includes("Upload checks remain authoritative")));
+  assert.match(f.selections[0].title, /choose to view details/);
+  assert.ok(!/Enter|Esc/.test(f.selections[0].title), "native selector owns actual keybinding hints");
+  publicOnly(f);
+});
+
+test("cancelling rules closes browsing without showing the problem selector", async (t) => {
+  const f = await fixture(t);
+  f.ctx.ui.editor = async () => undefined;
+  assert.match((await browseProblems("", f.ctx, f.options)).message, /Problem browsing closed/);
+  assert.equal(f.selections.length, 0);
+  publicOnly(f);
+});
+
+test("RPC details cancellation returns to list rather than closing or uploading", async (t) => {
+  const f = await fixture(t);
+  let selections = 0;
+  f.setSelect(async (options) => selections++ === 0 ? options[0] : undefined);
+  f.ctx.ui.editor = async (title) => title.startsWith("Problem details") ? undefined : "continue";
+  await browseProblems("", f.ctx, f.options);
+  assert.equal(f.selections.length, 2);
   publicOnly(f);
 });
 

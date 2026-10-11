@@ -57,7 +57,7 @@ Initial artifact: `agent-golf@0.1.0`, approved for the `preview` channel. No `la
 
 2. Update the student README/release notes and owner plan. Keep README's release notice and primary install command accurate for the chosen stable or preview channel. Keep maintainers' workflow and private development details out of that README.
 3. From the repo root run `bash tools/check.sh`. It packs the package into a temporary directory, verifies the exact file allowlist/manifest and loads the extracted artifact in isolated Pi. For real website login and packed-plugin transport/UI coverage, also run the gate with `AGENT_GOLF_WEBSITE_DIR` and `AGENT_GOLF_E2E_WEBSITE_DIR` pointing at a current prepared website checkout (see DEVELOPMENT.md). Transport tests using stand-in scoring do not satisfy stable-release readiness.
-4. From `plugin/` inspect `npm pack --dry-run --json`. The only files should be package.json, README.md, LICENSE and the six runtime TypeScript modules. Never include tests, logs, server code, planning material, development/release guides or credentials. Host-provided Pi packages stay peer dependencies and are not bundled.
+4. From `plugin/` inspect `npm pack --dry-run --json`. The only files should be package.json, README.md, LICENSE and the seven runtime TypeScript modules (including problem-view.ts). Never include tests, logs, server code, planning material, development/release guides or credentials. Host-provided Pi packages stay peer dependencies and are not bundled.
 5. Review and commit the release metadata/code/docs together. Do not update HANDOFF.md or the shared plans index on the feature branch. Do not publish an unreviewed or dirty working tree.
 
 ## Publish the reviewed artifact (separate external action)

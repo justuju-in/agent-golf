@@ -1,10 +1,11 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { resolveApiOrigin } from "./config.ts";
+import { showProblemView } from "./problem-view.ts";
 
 export const MAX_PROBLEM_BODY_BYTES = 64 * 1024;
 const MAX_STRING_CHARACTERS = 1000;
 const UNAVAILABLE = "Problem list unavailable. Check the configured server and connection, then try /golf-problems again.";
-const ADVISORY = "Informational only: browsing does not start or bind an attempt. Upload checks remain authoritative. Any edits in this view are discarded.";
+const ADVISORY = "Informational only: browsing does not start or bind an attempt. Upload checks remain authoritative. Nothing is uploaded by browsing.";
 
 interface Problem {
   slug: string;
@@ -72,7 +73,7 @@ async function readCatalogue(response: Response): Promise<Catalogue | undefined>
 let browsing = false;
 export async function browseProblems(
   args: string,
-  ctx: Pick<ExtensionContext, "ui" | "hasUI">,
+  ctx: Pick<ExtensionContext, "ui" | "hasUI" | "mode">,
   options: ProblemOptions = {},
 ): Promise<Result> {
   if (args.trim()) return { message: "Usage: /golf-problems", type: "info" };
@@ -94,22 +95,21 @@ export async function browseProblems(
     if (!data) return { message: UNAVAILABLE, type: "error" };
     const rules = [`Rules version: ${data.rules_version}`, "", ...data.rules, "", ADVISORY];
     if (!data.problems.length) rules.push("", "No problems are currently listed.");
-    // A temporary plain-text editor is supported in TUI and RPC and can scroll
-    // long guidance. Never paste its result into the main editor or session.
-    await ctx.ui.editor("Agent Golf rules — edits discarded", rules.join("\n"));
-    if (data.problems.length) {
+    const continued = await showProblemView(ctx, "Agent Golf rules", rules.join("\n"),
+      data.problems.length ? "view problems" : "close", "close");
+    if (continued && data.problems.length) {
       const labels = data.problems.map((p) => `${p.title.replace(/[\n\t]/g, " ")} (${p.slug})`);
       while (true) {
-        const selected = await ctx.ui.select("Agent Golf problems — advisory; Esc to close", labels);
+        const selected = await ctx.ui.select("Agent Golf problems — choose to view details", labels);
         const index = selected === undefined ? -1 : labels.indexOf(selected);
         if (index < 0) break;
         const problem = data.problems[index];
-        await ctx.ui.editor("Problem details — edits discarded", [
+        await showProblemView(ctx, "Problem details", [
           problem.title, `Problem: ${problem.slug}`, problem.challenge_url,
           `Model: ${problem.model === "any" ? "any model, one per session" : problem.model}`,
           `Thinking level: ${problem.thinking_level === "any" ? "any thinking level" : problem.thinking_level}`,
           "", ...problem.instructions, "", ADVISORY,
-        ].join("\n"));
+        ].join("\n"), "back to problems", "back to problems");
       }
     }
     return { message: "Problem browsing closed. No attempt or setup was changed.", type: "info" };

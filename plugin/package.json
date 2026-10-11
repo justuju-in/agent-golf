@@ -6,7 +6,7 @@
   "homepage": "https://agent-golf.justuju.in",
   "keywords": ["pi-package", "agent-golf"],
   "engines": { "node": ">=22.19.0" },
-  "files": ["index.ts", "config.ts", "login.ts", "submit.ts", "user-bash.ts", "problems.ts", "README.md", "LICENSE"],
+  "files": ["index.ts", "config.ts", "login.ts", "submit.ts", "user-bash.ts", "problems.ts", "problem-view.ts", "README.md", "LICENSE"],
   "pi": { "extensions": ["./index.ts"], "skills": [], "prompts": [], "themes": [] },
   "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
   "type": "module",
@@ -14,7 +14,8 @@
     "test": "node --test test/*.test.mjs"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*"
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
   },
   "devDependencies": {}
 }

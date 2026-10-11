@@ -28,7 +28,7 @@ Restart Pi or `/reload` afterward. An exact version such as `npm:agent-golf@0.1.
 
 Browse public contest rules, challenge URLs, instructions and each problem's model/thinking setup. Rules open first, followed by a problem selector. Close a detail view to return to the list; cancel the list to exit. An empty list still shows the rules.
 
-Views use Pi's temporary plain-text multi-line editor in interactive or supported RPC clients. All edits are discarded; nothing is inserted into your prompt or session. `any` setup is displayed as "any model, one per session" or "any thinking level".
+Interactive Pi uses read-only, scrollable text views: Enter on rules opens the problem list, Esc closes browsing, and Enter/Esc on details returns to the list. Arrow keys, Page Up/Down and Home/End scroll; navigation hints use your configured confirm/cancel keys. RPC clients retain temporary text-editor dialogs with explicit navigation titles; all edits are discarded. Nothing is inserted into your prompt or session. `any` setup is displayed as "any model, one per session" or "any thinking level".
 
 Browsing sends no key, cookie or session log, makes no model calls, and never starts/binds an attempt or changes your setup. The catalogue is advisory; server submission checks are authoritative. Replies are bounded to 64 KB and strings to 1,000 Unicode characters, with terminal-safety and exact Hackattic URL checks.
 

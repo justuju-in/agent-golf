@@ -8,7 +8,7 @@ import { test } from "node:test";
 import { startPi } from "./rpc-helper.mjs";
 
 const execute = promisify(execFile);
-const FILES = ["LICENSE", "README.md", "config.ts", "index.ts", "login.ts", "package.json", "problems.ts", "submit.ts", "user-bash.ts"].sort();
+const FILES = ["LICENSE", "README.md", "config.ts", "index.ts", "login.ts", "package.json", "problem-view.ts", "problems.ts", "submit.ts", "user-bash.ts"].sort();
 
 test("npm artifact contains only public runtime files and installs independently of the repo", { timeout: 60_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), "golf-package-"));
@@ -33,7 +33,7 @@ test("npm artifact contains only public runtime files and installs independently
     assert.equal(manifest.engines.node, ">=22.19.0");
     assert.deepEqual(manifest.pi, { extensions: ["./index.ts"], skills: [], prompts: [], themes: [] });
     assert.deepEqual(manifest.publishConfig, { access: "public", registry: "https://registry.npmjs.org/" });
-    assert.deepEqual(manifest.peerDependencies, { "@earendil-works/pi-coding-agent": "*" });
+    assert.deepEqual(manifest.peerDependencies, { "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*" });
     assert.equal(Object.keys(manifest.dependencies ?? {}).length, 0);
     assert.ok(!manifest.private);
     assert.ok(!(await readFile(join(root, "README.md"), "utf8")).includes(".agents/"));
@@ -63,6 +63,10 @@ test("npm artifact contains only public runtime files and installs independently
     assert.deepEqual((await client.request("get_messages")).messages, messages);
     assert.equal((await client.request("get_session_stats")).tokens.total, 0);
     assert.equal(client.seen.some((record) => record.type === "agent_start" || record.type === "message_start"), false);
+    if (process.platform !== "win32") {
+      const { stdout } = await execute("python3", [resolve("test/tui-browser-smoke.py"), join(root, "index.ts")], { timeout: 40_000 });
+      assert.match(stdout, /REAL TUI PASS/, "packed artifact also loads its custom TUI dependency through Pi");
+    }
   } finally {
     try { await client?.close(); } finally { await rm(directory, { recursive: true, force: true }); }
   }
