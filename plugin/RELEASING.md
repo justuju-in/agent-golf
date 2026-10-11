@@ -2,6 +2,16 @@
 
 Maintainer instructions for the private source repository. This file and DEVELOPMENT.md are excluded from the public npm artifact. The student README is the published usage guide.
 
+## Current release handoff (2026-10-11)
+
+- `agent-golf@0.1.0` is already published. Its downloaded integrity matches the reviewed artifact; do not publish that version again.
+- Fresh Pi registry installs through both `npm:agent-golf@preview` and `npm:agent-golf@0.1.0` passed the local website integration gate (92/92). Install/update/removal also passed in isolated settings; no later-version upgrade was tested because no later release exists.
+- Registry currently has **both preview and latest pointing to 0.1.0**. Removing latest returned E400; tags were left unchanged. This is still a preview in readiness terms: a tag is not scoring verification. Check current tags with `npm view agent-golf dist-tags --json --registry=https://registry.npmjs.org/` rather than assuming the initial snapshot is current.
+- Production catalogue DNS resolution failed from the test machine; the tested website still uses the stand-in counter. Real counter alignment/wiring, deployment and a real solved/live E2E remain required before student distribution. Follow the owner-assigned checklist below.
+- Backup npm invitations are pending confirmed usernames and acceptance. Existing maintainer instructions below explain permissions; do not assume source-repository access grants publishing access.
+- For a stale ETARGET during preview installation, retry `npm_config_prefer_online=true pi install npm:agent-golf@preview`. If needed, use a fresh temporary npm cache rather than clearing the user's entire cache.
+- Read [DEVELOPMENT.md](DEVELOPMENT.md) for local/registry verification commands, [README.md](README.md) for the public install guide, and the [owner plan](../.agents/plans/004-plugin-and-deploy.md) for dated evidence and pending work. This private guide is not shipped to npm.
+
 ## Prerequisites
 
 - Agreed package: `agent-golf`, public npm, plugin-only MIT; first version `0.1.0`.
