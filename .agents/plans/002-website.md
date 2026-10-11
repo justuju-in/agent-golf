@@ -27,7 +27,7 @@ updated: 2026-10-11
   - [ ] 4.1 Bring `main` into this branch; import from `server.counter`; delete the stand-in
   - [ ] 4.2 Upload each file in `samples/` with a test key; rows and verdicts match `samples/README.md`
 - [ ] **Phase 5 — Docker and deployment at agent-golf.justuju.in**
-  - [ ] 5.1 `server/Dockerfile`: one image with the website and the counter
+  - [x] 5.1 `server/Dockerfile`: one image with the website and the counter
   - [ ] 5.2 Database and uploads in a mounted volume; survive a container restart
   - [ ] 5.3 Merge `feature/plan-002` to `main`; update `.agents/HANDOFF.md` in that merge
   - [ ] 5.4 Deploy with HTTPS at agent-golf.justuju.in; confirm a 19 MB upload reaches the app
@@ -127,6 +127,7 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - Files: `server/Dockerfile`, `server/.dockerignore`
 - Do: Python 3.12 slim base; copy the whole `server/` folder to `/app/server` so `server.counter` imports work as in the repo; install from the pinned requirements; run as a non-root user; one port (8000).
 - Acceptance: `docker build -t agent-golf server/ && docker run -p 8000:8000 -v agent-golf-data:/data agent-golf` serves the register page locally.
+- Result (2026-10-11): `env TMPDIR=server/data/tmp bash tools/check.sh` → `Ran 111 tests … OK`, `gate: ok`. Docker 29.4 on OrbStack (linux/arm64): `docker build -t agent-golf server/` built all six steps on `python:3.12-slim` (Python 3.12.15); `pip freeze` in the image gives the same 20 packages and versions as the local `.venv`. `docker run --rm agent-golf id` → `uid=10001(golf) gid=10001(golf)`; `find /app` lists only the code, templates, static files and an empty `server/data/` owned by `golf`: no local database or scratch, no `tests/`, `.agents-review/` or `__pycache__`. Then `docker run -d --name agent-golf-test -p 8002:8000 -e AGENT_GOLF_API_BASE_URL=http://localhost:8002 -v agent-golf-test-data:/data agent-golf` (host port 8002, since 8000 is the dev server's): `curl http://localhost:8002/register` → `200 OK`, `text/html`, `cache-control: no-store`, the register form; `/static/style.css` and `/api/v1/problems` → 200; `docker top` shows uvicorn as uid 10001. As expected before 5.2, the database was written inside the container (`docker diff`: `A /app/server/data/agent_golf.db`), not in the volume. Test container and volume removed afterwards.
 
 #### 5.2 Persistent data
 - Files: `server/` config
@@ -186,3 +187,4 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - 2026-10-11 — 3.1 done: ranking in `server/board.py`, page text (setups, reason labels, counts, "5 min ago") in `server/pages.py`, `templates/board.html`, and an HTML 404 page for unknown boards. Small choices: among equal scores, and between a player's equally good sessions, the first submitted comes first; the Unranked rows list only the reasons that unranked them (warnings are on the submission page); "submitted" is the session's latest upload; the footer shows `/golf-submit <slug>`, as the plugin on `feature/plan-004` needs the slug. Nav: Board and Register (Rules comes with 3.3).
 - 2026-10-11 — 3.2 done: `/submissions/<id>` is now the HTML page (`templates/submission.html`), replacing 2.4's JSON, and still reads only `submissions.public()`; its standing comes from the board (`board.rank`). Unranking reasons come before warnings; a problem dropped from the config shows its slug.
 - 2026-10-11 — 3.3 done: `/rules` (`templates/rules.html`) from the problem config, the nav now has Board, Rules and Register on every page, and the board's install step links to `/rules#install`. Install steps stay a placeholder until plan 004 publishes the plugin. Screenshot fixes in the same commit (see 3.3's Result). Later, not today: boards reload with a meta refresh, as agreed, which can move a screen-reader user back to the top every 30 s (WCAG 2.2.1); a link to a board without the refresh would solve it if needed.
+- 2026-10-11 — 5.1 done: `server/Dockerfile` (`python:3.12-slim`, requirements installed in their own layer before the code, code owned by root, runs as `golf` uid 10001 on port 8000) and `server/.dockerignore` (`data/`, `.agents-review/`, bytecode, `tests/`). `server/README.md` has the build and run commands. Local Docker checks use host port 8002, never 8000 or 8001.

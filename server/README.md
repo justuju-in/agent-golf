@@ -58,3 +58,14 @@ curl -s -i http://localhost:8000/api/v1/problems   # public: no key
 ```
 
 The reply is "Contract: problem list" in [`../docs/spec.md`](../docs/spec.md): the rules, `rules_version`, and every problem in `problems.py` whose model and thinking level are set (`"any"` counts as set). At startup the app checks the config against the list's limits (plain text, at most 1,000 characters per string and 64 KB in all, `challenge_url` exactly `https://hackattic.com/challenges/<slug>`) and refuses to start if `problems.py` breaks one.
+
+## Docker
+
+One image holds the website and the counter. From the repo root:
+
+```bash
+docker build -t agent-golf server/
+docker run -d --name agent-golf -p 8000:8000 agent-golf
+```
+
+Then open http://localhost:8000/register. The image copies `server/` to `/app/server`, leaving out what `.dockerignore` lists (`data/`, `tests/`, review notes and bytecode), installs `requirements.txt`, and runs `uvicorn server.app:app` on port 8000 as the non-root user `golf` (uid 10001), which can write only the data directory. Add `-e AGENT_GOLF_API_BASE_URL=…` when the site is reached at another origin than `http://localhost:8000`. Until the data volume (plan 002, step 5.2), the database stays inside the container.
