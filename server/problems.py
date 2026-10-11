@@ -60,7 +60,6 @@ PROBLEMS = (
             " solve reply.",
             'It counts as solved only when that printed solve reply says "result": "passed".',
         ),
-        # "any" for now, so uploads aren't refused. Step 0 (plan 001) sets the real values.
         model="any",
         thinking_level="any",
     ),

@@ -37,7 +37,7 @@ class ProblemConfigTest(unittest.TestCase):
         self.assertEqual(problem.title, "Help me unpack")
         self.assertEqual(problem.challenge_url, "https://hackattic.com/challenges/help_me_unpack")
         self.assertTrue(problem.instructions)
-        # Until Step 0 (plan 001) sets the real setup.
+        # Step 0 (plan 001) kept any model and any thinking level for Monday.
         self.assertEqual((problem.model, problem.thinking_level), ("any", "any"))
 
     def test_unknown_slugs(self):
