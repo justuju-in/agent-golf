@@ -268,7 +268,8 @@ code {
   font-weight: 700;
 }
 
-/* Tables scroll sideways inside their region on narrow screens. */
+/* Tables scroll sideways inside their region on narrow screens, rather than breaking
+   names and models mid-word. */
 .table-scroll {
   overflow-x: auto;
   margin: 0 0 1em;
@@ -297,10 +298,6 @@ thead th {
   white-space: nowrap;
 }
 
-tbody th {
-  overflow-wrap: anywhere;
-}
-
 .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -308,10 +305,6 @@ tbody th {
 
 .rank {
   font-weight: 700;
-}
-
-td.model {
-  overflow-wrap: anywhere;
 }
 
 td time {
@@ -355,14 +348,17 @@ td time {
   line-height: 1.2;
 }
 
+/* A box per number. A number never breaks: a box that needs more room grows, and the
+   boxes wrap onto another row. */
 .numbers {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   margin: 0 0 1.5rem;
 }
 
 .numbers div {
+  flex: 1 1 10rem;
   padding: 0.75rem 1rem;
   border: 2px solid #272426;
   border-radius: 4px;
@@ -378,7 +374,7 @@ td time {
   font-weight: 700;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .facts {
@@ -397,11 +393,44 @@ td time {
   overflow-wrap: anywhere;
 }
 
+.ago {
+  white-space: nowrap;
+}
+
 .reasons {
   margin: 0 0 1rem;
   padding-left: 1.5rem;
 }
 
 .reasons li {
+  margin-bottom: 0.5rem;
+}
+
+/* Rules page */
+
+h3 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.problem {
+  margin: 0 0 1.5rem;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 4px solid #c46c34;
+}
+
+.problem h3 {
+  margin-top: 0;
+}
+
+.instructions,
+.how {
+  margin: 0 0 1rem;
+  padding-left: 1.5rem;
+}
+
+.instructions li,
+.how li {
   margin-bottom: 0.5rem;
 }

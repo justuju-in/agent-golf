@@ -134,7 +134,7 @@ class RegisterTest(unittest.TestCase):
         key_page = self.register("bob", "bob_h").text
         for page in (Page(self.client.get("/register").text), Page(key_page)):
             links = [a["href"] for a in page.find("a")]
-            self.assertEqual(links, ["/", "/register"])
+            self.assertEqual(links, ["/", "/rules", "/register"])
             urls = [link["href"] for link in page.find("link")]
             urls += [script["src"] for script in page.find("script")]
             for url in [*links, *urls]:

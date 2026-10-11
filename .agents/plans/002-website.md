@@ -3,7 +3,7 @@ name: 002-website
 description: Registration, key check, upload and problem-list API, leaderboard pages, Docker and deployment in server/ (never server/counter/).
 status: started
 created: 2026-10-10
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # Website
@@ -22,7 +22,7 @@ updated: 2026-10-10
 - [ ] **Phase 3 — Pages**
   - [x] 3.1 Board per problem: ranked rows, then unranked players; 30-second refresh; projector-size text
   - [x] 3.2 Submission page: username, model, numbers, solved, reasons; never prompts, folders or raw log
-  - [ ] 3.3 Rules page: the seven rules, each problem's instructions and setup, scoring, install and submit steps
+  - [x] 3.3 Rules page: the seven rules, each problem's instructions and setup, scoring, install and submit steps
 - [ ] **Phase 4 — Real counter** (after Amit merges `counter` to `main`)
   - [ ] 4.1 Bring `main` into this branch; import from `server.counter`; delete the stand-in
   - [ ] 4.2 Upload each file in `samples/` with a test key; rows and verdicts match `samples/README.md`
@@ -112,6 +112,7 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - Files: `server/` templates
 - Do: the rules text from the problem config (mirrors `docs/spec.md`), each listed problem's title, Hackattic link, instructions, model and thinking level, the scoring line, and install, login and submit steps (install command from plan 004 once Prateek publishes it).
 - Acceptance: linked from every page's header; shows the same problems and setups as `GET /api/v1/problems`.
+- Result (2026-10-11): `env TMPDIR=server/data/tmp bash tools/check.sh` → `Ran 111 tests … OK`, `gate: ok`; 5 new in `server/tests/test_rules.py`: the rules text equals `problems.RULES`; with a fixed-model and an unset problem added, the page shows exactly the problems of `GET /api/v1/problems`, each with its title, Hackattic link, setup ("any model, one per session; any thinking level" and "openai/gpt-5.5; thinking level low"), instructions, `/golf-submit <slug>` and board link; the scoring line, the install placeholder and the login and submit steps; no problems listed; escaping. `test_board.py`'s nav test now checks Board, Rules and Register (and which is current) on the board, rules, register, submission and 404 pages. Live check (Kiro): server on port 8000 with a scratch data dir under `server/data/tmp/`, twelve uploads from eight players through the stand-in (a scratch script, keys never printed, times then backdated in the scratch database), all `200`; the board showed ranks 1, 1, 3, 4, 5 (a shared file gives the shared rank, a warning-only session stays ranked, a player's worse and unranked sessions are hidden) and Unranked "Folder reused", "Not solved", "Model switched", latest first; `/submissions/7` from a reply opened as HTML. Screenshots in `server/.agents-review/`: `board-1280.png`, `board-390.png`, `submission-page-1280.png`, `submission-page-390.png`, `submission-unranked-1280.png`, `rules-1280.png`, `rules-390.png`, `rules-1280-full.png`; server log (paths and statuses only) in `server-live-3.log`. This Chrome will not make a window narrower than about 500 px, so the 390 px shots load the page in a 390 px iframe. They led to three CSS fixes: board tables scroll sideways on phones instead of breaking models mid-word, a large number on the submission page never breaks (its box grows), and "(1 day ago)" stays on one line (that last one not re-shot).
 
 ### Phase 4 — Real counter
 
@@ -184,3 +185,4 @@ Students can register, upload, and see the board. Done when uploading `samples/p
 - 2026-10-11 — 2.5 done: `GET /api/v1/problems` serves `problems.problem_list_json()`, the rules and every set problem. `problems.check()` runs in `create_app`, so a config that breaks the list's limits stops the server from starting. Beyond the spec's limits it also refuses what the plugin on `feature/plan-004` would refuse (bidi controls, unpaired surrogates, slug, model and thinking-level shapes), so the list it serves never shows as "unavailable".
 - 2026-10-11 — 3.1 done: ranking in `server/board.py`, page text (setups, reason labels, counts, "5 min ago") in `server/pages.py`, `templates/board.html`, and an HTML 404 page for unknown boards. Small choices: among equal scores, and between a player's equally good sessions, the first submitted comes first; the Unranked rows list only the reasons that unranked them (warnings are on the submission page); "submitted" is the session's latest upload; the footer shows `/golf-submit <slug>`, as the plugin on `feature/plan-004` needs the slug. Nav: Board and Register (Rules comes with 3.3).
 - 2026-10-11 — 3.2 done: `/submissions/<id>` is now the HTML page (`templates/submission.html`), replacing 2.4's JSON, and still reads only `submissions.public()`; its standing comes from the board (`board.rank`). Unranking reasons come before warnings; a problem dropped from the config shows its slug.
+- 2026-10-11 — 3.3 done: `/rules` (`templates/rules.html`) from the problem config, the nav now has Board, Rules and Register on every page, and the board's install step links to `/rules#install`. Install steps stay a placeholder until plan 004 publishes the plugin. Screenshot fixes in the same commit (see 3.3's Result). Later, not today: boards reload with a meta refresh, as agreed, which can move a screen-reader user back to the top every 30 s (WCAG 2.2.1); a link to a board without the refresh would solve it if needed.

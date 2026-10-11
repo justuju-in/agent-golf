@@ -31,7 +31,7 @@
       <dt>Solved</dt>
       <dd>{{ "Yes" if metrics.solved else "No" }}</dd>
       <dt>Submitted</dt>
-      <dd><time datetime="{{ submission.submitted_at }}">{{ pages.utc_time(submission.submitted_at) }}</time> ({{ pages.ago(submission.submitted_at, now) }})</dd>
+      <dd><time datetime="{{ submission.submitted_at }}">{{ pages.utc_time(submission.submitted_at) }}</time> <span class="ago">({{ pages.ago(submission.submitted_at, now) }})</span></dd>
     </dl>
     <h2>Reasons</h2>
     {%- if submission.reasons %}

@@ -141,7 +141,12 @@ class BoardTest(PageTestCase):
         self.assertEqual(page.find("p", class_="setup").text(), "Setup: openai/gpt-5.5; thinking level low")
 
     def test_footer(self):
-        steps = [item.text() for item in self.page("/").find("ol", class_="steps").find_all("li")]
+        footer = self.page("/").find("ol", class_="steps")
+        steps = [item.text() for item in footer.find_all("li")]
+        self.assertEqual(
+            [(a.attrs["href"], a.text()) for a in footer.find_all("a")],
+            [("/rules#install", "Install the Pi plugin"), ("/register", "Register")],
+        )
         self.assertEqual(
             steps,
             [
@@ -321,14 +326,19 @@ class BoardTest(PageTestCase):
                 self.assertEqual(response.headers["content-type"], "text/html; charset=utf-8")
                 self.assertEqual(parse(response.text).find("h1").text(), "Not found")
 
-    def test_nav(self):
-        self.upload("alice", session("a1"))
-        for path in ("/", "/problems/help_me_unpack", "/register", "/problems/nope"):
+    def test_nav_on_every_page(self):
+        reply = self.upload("alice", session("a1"))
+        current = {  # path: the nav link marked as the current page
+            "/": "/", "/problems/help_me_unpack": "/", "/rules": "/rules", "/register": "/register",
+            link(reply["url"]): None, "/problems/nope": None, "/submissions/999": None,
+        }
+        for path, expected in current.items():
             with self.subTest(path=path):
                 nav = parse(self.client.get(path).text).find("nav")
-                self.assertEqual([a.attrs["href"] for a in nav.find_all("a")], ["/", "/register"])
-                current = [a.attrs["href"] for a in nav.find_all("a", aria_current="page")]
-                self.assertEqual(current, {"/": ["/"], "/problems/help_me_unpack": ["/"], "/register": ["/register"]}.get(path, []))
+                links = [(a.attrs["href"], a.text()) for a in nav.find_all("a")]
+                self.assertEqual(links, [("/", "Board"), ("/rules", "Rules"), ("/register", "Register")])
+                marked = [a.attrs["href"] for a in nav.find_all("a", aria_current="page")]
+                self.assertEqual(marked, [expected] if expected else [])
 
     def test_only_public_fields(self):
         content = session("session-id-1234", cwd="/home/alice/secret-folder")

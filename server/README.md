@@ -47,6 +47,7 @@ Until step 4.1, scoring is the stand-in in `standin_counter.py`: made-up numbers
 
 - `/` is the board of the first listed problem in `problems.py`; every listed problem has its own at `/problems/<slug>`, and each board links the others. Ranked: each player's best ranked session, fewest tokens first (ties: fewer prompts, then fewer characters; equal scores share a rank), with a model column only when the problem's model is `"any"`. Unranked: the latest attempt of each player with no ranked session, with the reasons that unranked it. Boards reload themselves every 30 seconds, for the projector.
 - `/submissions/<id>` (the `url` in upload replies): "Ranked #N" when it is the player's row on its board, "Ranked (not your best attempt)" when another of their sessions is, otherwise "Unranked"; tokens ("unknown" when not counted), prompts, characters and tool calls; the models and thinking levels that answered; solved; reasons in plain English, warnings marked; the submitted time.
+- `/rules`: the rules from `problems.py` (which mirror `docs/spec.md`), each listed problem's Hackattic link, setup and instructions (the same problems as `GET /api/v1/problems`), the scoring line, and the login and submit steps. The install steps are a placeholder until the plugin is published.
 
 Pages show only usernames, models, numbers and verdicts: never prompts, folders, session ids, raw logs, keys or Hackattic usernames.
 

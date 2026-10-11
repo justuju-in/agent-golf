@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Rules{% endblock %}
+
+{% block main %}
+    <h1>Rules</h1>
+    <div class="rules">
+      {%- for rule in rules %}
+      <p>{{ rule }}</p>
+      {%- endfor %}
+    </div>
+
+    <h2>Problems</h2>
+    {%- for problem in listed %}
+    <section class="problem" aria-labelledby="problem-{{ problem.slug }}">
+      <h3 id="problem-{{ problem.slug }}">{{ problem.title }}</h3>
+      <p><a href="{{ problem.challenge_url }}">{{ problem.title }} on Hackattic</a></p>
+      <p class="setup">Setup: {{ pages.setup_text(problem) }}</p>
+      <ul class="instructions">
+        {%- for line in problem.instructions %}
+        <li>{{ line }}</li>
+        {%- endfor %}
+      </ul>
+      <p>Submit with <code>/golf-submit {{ problem.slug }}</code>. See the <a href="/problems/{{ problem.slug }}">{{ problem.title }} board</a>.</p>
+    </section>
+    {%- else %}
+    <p>No problems are open yet.</p>
+    {%- endfor %}
+
+    <h2>Scoring</h2>
+    <p class="scoring">{{ pages.SCORING }}</p>
+
+    <h2 id="install">Install the plugin</h2>
+    <p class="placeholder">Install steps for the Pi plugin will be added here when the plugin is published.</p>
+
+    <h2>Log in and submit</h2>
+    <ol class="how">
+      <li><a href="/register">Register</a> to get your secret key. It is shown once, so save it.</li>
+      <li>In Pi, run <code>/golf-login &lt;key&gt;</code> with that key.</li>
+      <li>Solve the problem in a new Pi session, started in a new, empty folder.</li>
+      <li>In that session, run <code>/golf-submit &lt;problem&gt;</code>
+        {%- if listed %}, for example <code>/golf-submit {{ listed[0].slug }}</code>{% endif %}. Its reply links to your submission's page.</li>
+    </ol>
+{%- endblock %}

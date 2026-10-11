@@ -159,6 +159,14 @@ def problem_board(request: Request, slug: str, conn: Conn) -> HTMLResponse:
     return board_page(request, conn, problem)
 
 
+@router.get("/rules", response_class=HTMLResponse)
+def rules(request: Request) -> HTMLResponse:
+    """The rules, and each listed problem's setup: what GET /api/v1/problems lists."""
+    return templates.TemplateResponse(
+        request, "rules.html", {"rules": problems.RULES, "listed": problems.listed()}
+    )
+
+
 @router.get("/submissions/{submission_id:int}", response_class=HTMLResponse)
 def submission(request: Request, submission_id: int, conn: Conn) -> HTMLResponse:
     """The link in upload replies: one submission's public fields and its standing."""
