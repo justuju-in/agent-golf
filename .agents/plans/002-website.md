@@ -10,16 +10,16 @@ updated: 2026-10-11
 
 ## Progress
 
-- [ ] **Phase 1 — Agreements**
+- [x] **Phase 1 — Agreements**
   - [x] 1.1 Contract and process on `main`: upload status codes, reason codes, counter return and `NotPiLogError`, HANDOFF rule, gate on Python 3.12 (`d412128`, `278dc35`)
   - [x] 1.2 Second round on `main`: per-problem setup and problem config, problem list contract, generic "solved" check, usage reason codes, `agent-golf.justuju.in` (`d32ff18`, `d5062d5`)
-- [ ] **Phase 2 — API, against a stand-in counter**
+- [x] **Phase 2 — API, against a stand-in counter**
   - [x] 2.1 Stack skeleton (FastAPI, Jinja, SQLite, Python 3.12, pinned `server/requirements.txt`) and `GET /api/v1/me` exactly per `docs/spec.md`
   - [x] 2.2 Register page → key page: username + Hackattic username, key shown once, only its SHA-256 stored
   - [x] 2.3 Stand-in counter in `server/` (never `server/counter/`): the spec's `score()`, `NotPiLogError` and reason sets; gives ranked and unranked results
   - [x] 2.4 Problem config, then `POST /api/v1/submissions` per `docs/spec.md`: checks, store file, call counter with the problem's setup, store result, reply
   - [x] 2.5 `GET /api/v1/problems` per `docs/spec.md`, built from the problem config
-- [ ] **Phase 3 — Pages**
+- [x] **Phase 3 — Pages**
   - [x] 3.1 Board per problem: ranked rows, then unranked players; 30-second refresh; projector-size text
   - [x] 3.2 Submission page: username, model, numbers, solved, reasons; never prompts, folders or raw log
   - [x] 3.3 Rules page: the seven rules, each problem's instructions and setup, scoring, install and submit steps
