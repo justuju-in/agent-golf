@@ -1,5 +1,6 @@
 """The rules page: GET /rules (plan 002 step 3.3)."""
 
+import re
 import unittest
 from dataclasses import replace
 from unittest import mock
@@ -24,6 +25,11 @@ IN_PI = (
     "In Pi: /golf-login <your key> (once), pick your model with /model before your first prompt,"
     " solve, then /golf-submit <problem>."
 )
+# Cloudflare's Email Address Obfuscation (on for the live site) rewrites what it reads as an
+# email address, such as a versioned package (name@0.3.0), into a link only JavaScript
+# decodes. It leaves text between these two comments alone.
+EMAIL_OFF = re.compile(r"<!--email_off-->(.*?)<!--/email_off-->", re.DOTALL)
+EMAIL_LIKE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 
 
 class RulesPageTest(PageTestCase):
@@ -83,6 +89,18 @@ class RulesPageTest(PageTestCase):
             ],
         )
         self.assertEqual([a.attrs["href"] for a in steps.find_all("a")], ["/register"])
+
+    def test_commands_are_kept_from_email_obfuscation(self):
+        # The raw HTML: comments are not in the parsed page, nor in what readers see and copy.
+        response = self.client.get("/rules")
+        self.assertEqual(response.status_code, 200)
+        copilot = "pi install npm:pi-github-copilot-auto@0.3.0"
+        self.assertRegex(copilot, EMAIL_LIKE)
+        self.assertNotRegex("pi install npm:agent-golf@preview", EMAIL_LIKE)  # no dot after the @
+        self.assertIn(copilot, EMAIL_OFF.findall(response.text))
+        # Every email-like string on the page is inside such a block, so a new versioned
+        # command cannot slip through.
+        self.assertEqual(EMAIL_LIKE.findall(EMAIL_OFF.sub("", response.text)), [])
 
     def test_no_problems_listed(self):
         with mock.patch.object(problems, "PROBLEMS", (UNSET,)):
