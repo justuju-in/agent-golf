@@ -15,6 +15,8 @@ USAGE_NOT_RECORDED = 'usage_not_recorded'
 UNRANKING_REASONS = frozenset({NOT_SOLVED, MODEL_MISMATCH, MODEL_SWITCHED,
                              THINKING_LEVEL_MISMATCH, FOLDER_REUSED, MISSING_USAGE})
 WARNING_REASONS = frozenset({CUSTOM_SETUP, INCONSISTENT_LOG, USAGE_NOT_RECORDED})
+PI_SECTIONS = frozenset({'preamble', 'tools', 'rules', 'docs', 'cwd'})
+EXTRA_SECTIONS = frozenset({'project_context', 'skills', 'addendum'})
 
 
 def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]) -> dict:
@@ -72,7 +74,11 @@ def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]
             usage(message.get('usage'))
         elif role == 'system':
             sections = message.get('sections', {})
-            if isinstance(sections, dict) and any(sections.get(k) for k in ('skills', 'contextFiles', 'agents', 'rules')):
+            # Pi always fills its own sections (rules holds Pi's built-in guidelines).
+            # Context files, skills, an appended prompt, or a section an extension adds are extra setup.
+            if isinstance(sections, dict) and any(
+                    content for name, content in sections.items()
+                    if name in EXTRA_SECTIONS or name not in PI_SECTIONS):
                 reasons.add(CUSTOM_SETUP)
         if kind in ('compaction', 'branch_summary'):
             usage(entry.get('usage'), required=True, summary=True)

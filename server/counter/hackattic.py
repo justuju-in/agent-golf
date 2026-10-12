@@ -3,6 +3,8 @@ import json
 import re
 from .pi_reader import text_content
 
+PASSED_RESULTS = frozenset({'passed', 'passed (playground mode)'})
+
 
 def json_objects(text):
     decoder = json.JSONDecoder()
@@ -43,7 +45,9 @@ def solved(entries, problem):
         elif role == 'bashExecution' and isinstance(message.get('command'), str):
             sources.append(message['command'])
         elif role == 'toolResult':
-            passed = passed or any(obj.get('result') == 'passed'
+            # Hackattic replies "passed (playground mode)" to a re-solve sent with
+            # &playground=1, which a student needs once they have solved it before.
+            passed = passed or any(obj.get('result') in PASSED_RESULTS
                                    for obj in json_objects(text_content(message)))
     if not passed:
         return False

@@ -119,6 +119,27 @@ class CounterTests(unittest.TestCase):
                         {'role': 'toolResult', 'toolCallId': 'run', 'content': '{"result":"passed"}'}]
             self.assertFalse(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
 
+    def test_playground_pass_is_solved(self):
+        messages = [assistant(content=[{'type': 'toolCall', 'name': 'bash', 'id': 'run',
+                    'arguments': {'command': 'curl "https://hackattic.com/challenges/help_me_unpack/solve?access_token=$T&playground=1"'}}]),
+                    {'role': 'toolResult', 'toolCallId': 'run', 'content': '{"result":"passed (playground mode)"}'}]
+        self.assertTrue(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
+        messages[-1]['content'] = '{"result":"passed (something else)"}'
+        self.assertFalse(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
+
+    def test_custom_setup_only_for_extra_sections(self):
+        clean = {'preamble': 'You are pi.', 'tools': 'read, bash', 'rules': '- be concise',
+                 'docs': 'Pi documentation', 'cwd': '/attempt'}
+        result = score(log({'role': 'system', 'content': '', 'sections': clean}, assistant()), 'x', AGREED, set())
+        self.assertNotIn('custom_setup', result['reasons'])
+        for name in ('project_context', 'skills', 'addendum', 'from_an_extension'):
+            with self.subTest(name=name):
+                sections = dict(clean, **{name: 'extra'})
+                result = score(log({'role': 'system', 'content': '', 'sections': sections}, assistant()), 'x', AGREED, set())
+                self.assertIn('custom_setup', result['reasons'])
+        result = score(log({'role': 'system', 'content': '', 'sections': dict(clean, skills='')}, assistant()), 'x', AGREED, set())
+        self.assertNotIn('custom_setup', result['reasons'])
+
     def test_passed_without_challenge_evidence_is_not_solved(self):
         result = score(log(assistant(), {'role': 'toolResult', 'content': '{"result":"passed"}'}),
                        'help_me_unpack', AGREED, set())
