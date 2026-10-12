@@ -2,13 +2,15 @@
 
 Maintainer instructions for the private source repository. This file and DEVELOPMENT.md are excluded from the public npm artifact. The student README is the published usage guide.
 
-## Current release preparation (2026-10-12)
+## Current release handoff (2026-10-12)
 
 - User approved `0.1.1`, keeping read-only browser views, switching the default/homepage to `https://agent-golf.csbasics.in`, publishing to `latest` and moving `preview` to the same version. Rebase remains parked; prepare from original feature/plan-004.
 - Production catalogue at the new hostname returns HTTP 200. Website 85718a5 activates the real counter; its unmodified local source passed 127 backend tests, published 0.1.0 passed 101 plugin integration tests and 11 scoring replays. Fresh solved production submission remains unverified: this URL/channel release is approved, not a claim of complete competition readiness.
 - Backend deployment must also set `AGENT_GOLF_API_BASE_URL=https://agent-golf.csbasics.in`, since upload replies contain absolute submission URLs. Plugin overrides remain explicit and credentials never migrate between origins; users update/reload and log in again.
-- Publication is currently blocked by npm `whoami` E401. Operator must authenticate with `npm login`; do not publish/retry until identity/permission is verified, and do not share tokens or weaken MFA.
-- After publishing the reviewed 0.1.1 tarball to latest, explicitly update preview with `npm dist-tag add agent-golf@0.1.1 preview --registry=https://registry.npmjs.org/`. Verify exact/tagged installs and an actual 0.1.0-to-0.1.1 update; do not overwrite or unpublish 0.1.0.
+- Source release commit: `42013d6`, original feature/plan-004. After login/owner verification, assistant publish stopped at EOTP; operator published the exact reviewed tarball interactively. Registry metadata and downloaded sha512/shasum match the reviewed artifact. `latest` now points at 0.1.1; never republish it.
+- Registry-installed exact 0.1.1 passed 101/101 local website integration tests. Fresh unversioned install resolved 0.1.1; its /golf-problems reached production with no origin override, login, model calls or session changes.
+- `preview` and `latest` both verified at 0.1.1. Operator handled tag MFA privately; no credentials/auth URLs/codes used by assistant or stored in repo, no policy weakening. A genuine isolated preview install advanced from 0.1.0 to 0.1.1 with `pi update --extensions`, preserving source/settings and verifying csbasics.in default/homepage; user also confirmed their update worked. Do not touch the user's installed plugin/credentials. Exact-version pins still require explicit replacement.
+- User authorized normal feature/plan-004 source push and current-main integration after the gate; parked rebase will not be adopted. Next release must change the browser's legacy "any model, one per session" wording to "any model" for mvp-3, including docs/tests; published 0.1.1 cannot be overwritten. Keep model_switched response handling for legacy rows. The live catalogue version is read dynamically, not pinned in the plugin.
 
 ## Previous release snapshot (2026-10-11)
 
