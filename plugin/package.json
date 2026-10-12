@@ -1,0 +1,21 @@
+{
+  "name": "agent-golf",
+  "version": "0.1.1",
+  "description": "Zero-model-call Pi commands for Agent Golf login, raw session submission and problem browsing",
+  "license": "MIT",
+  "homepage": "https://agent-golf.csbasics.in",
+  "keywords": ["pi-package", "agent-golf"],
+  "engines": { "node": ">=22.19.0" },
+  "files": ["index.ts", "config.ts", "login.ts", "submit.ts", "user-bash.ts", "problems.ts", "problem-view.ts", "README.md", "LICENSE"],
+  "pi": { "extensions": ["./index.ts"], "skills": [], "prompts": [], "themes": [] },
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "devDependencies": {}
+}

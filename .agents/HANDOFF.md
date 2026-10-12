@@ -2,7 +2,7 @@
 
 <!-- Overwrite, don't append. Keep under 60 lines. History lives in plans and git. -->
 
-Updated: 2026-10-12 (Kiro, for Anup: `fix/rescore-on-resubmit` and `fix/any-model-no-switch` merged into `main` at `fd185d8` and deployed; every submission re-scored)
+Updated: 2026-10-12 (Prateek: feature/plan-004 at 50dccfb merged with main f57dda0; npm 0.1.1 source and accepted class E2E checkpoint)
 
 ## Active work
 - Website (plan 002): done, archived at `.agents/plans/archive/002-website.md`. Since then on `main`: `fix/rescore-on-resubmit` and `fix/any-model-no-switch` (`358ba46`), both merged at `fd185d8`.
@@ -12,12 +12,16 @@ Updated: 2026-10-12 (Kiro, for Anup: `fix/rescore-on-resubmit` and `fix/any-mode
 - Supported: GitHub Copilot Auto (via `pi-github-copilot-auto` 0.3.0) and OpenRouter models. Hackattic's `"passed (playground mode)"` counts as solved. `custom_setup` fires only for real extra setup (context files, skills, an appended prompt, or a section an extension added).
 - Resubmitting (live since `fd185d8`): `/golf-submit` on an unchanged session file is scored again with the current counter, and only its status, reasons and metrics change; its times, link, folder fields and stored file stay. A changed file of the same session replaces the entry, keeping its link.
 - Data: live class data from Class 16 (12 Oct). Do not delete it. Every submission (ids 2 to 7) was re-scored on the server with the deployed counter at 18:54 IST, after a backup in the volume (`/data/agent_golf.db.bak-20261012T132357Z`; `…T121754Z` is from the first re-score, at 17:48 IST).
-- Current verdicts, all `help_me_unpack` (no `brute_force_zip` submissions yet): ranked #1 submission 5 (38,273 tokens), #2 submission 2 (48,857), #3 submission 7 (438,319; warning `usage_not_recorded`). Submission 3 (103,400; warning `usage_not_recorded`) is ranked but not its player's best (5 is). Unranked, `not_solved`: 4 (59,431; no Hackattic pass in any tool result) and 6 (45,625; "passed" only in the agent's own text, rule 9).
-- Plugin (plan 004): npm `agent-golf` 0.1.1 (tags `preview` and `latest`) defaults to https://agent-golf.csbasics.in. Its source is not on `origin/feature/plan-004` yet (last push 2026-10-11). Phase 3 (end-to-end on the live site) is open; it merges last.
+- Last reported verdicts (18:54 IST), all `help_me_unpack` (no `brute_force_zip` submissions yet): ranked #1 submission 5 (38,273 tokens), #2 submission 2 (48,857), #3 submission 7 (438,319; warning `usage_not_recorded`). Submission 3 (103,400; warning `usage_not_recorded`) is ranked but not its player's best (5 is). Unranked, `not_solved`: 4 (59,431; no Hackattic pass in any tool result) and 6 (45,625; "passed" only in the agent's own text, rule 9).
+- Plugin plan 004 completed/archived at `.agents/plans/archive/004-plugin-and-deploy.md`; source pushed normally to feature/plan-004 at 50dccfb and merged into main (base f57dda0). Release source 42013d6 matches immutable npm 0.1.1; latest/preview both verified 0.1.1, csbasics.in default.
+- Next plugin work: `.agents/plans/005-plugin-mvp3-follow-up.md` (created, not implemented). Change old browser "any model, one per session" to "any model", align docs/tests and stale spec display sentence in a separately approved release. Keep legacy model_switched responses. 0.1.1 already accepts ranked multi-model replies; it does not score/enforce model counts.
+- Local testing ran only against disposable data; no live data/server/tunnel/deployment change. Parked review/plan-004-rebased worktree is stale, retained untouched; do not adopt/force-push it.
 - Running on the server: `agent-golf` (stop with `docker stop agent-golf`) and `agent-golf-tunnel` (Cloudflare's connector; leave it alone).
 
 ## Verified (2026-10-12)
-- Gate on `fd185d8`: `Ran 137 tests … OK`, `gate: ok`.
+- Main checkpoint gate: `AGENT_GOLF_WEBSITE_DIR=$PWD AGENT_GOLF_E2E_WEBSITE_DIR=$PWD AGENT_GOLF_E2E_PACKAGE_SOURCE=npm:agent-golf@0.1.1 bash tools/check.sh` passed backend/counter 137/137 and plugin 101/101, no skips (/tmp/golf-004-main-final-gate.log). Diff/relative-link checks and source/artifact/backend/spec preservation passed; no conflicts or force push.
+- Genuine isolated preview upgrade 0.1.0 -> 0.1.1 with `pi update --extensions` preserved source/settings and verified csbasics.in default; user also confirmed update. Fresh installed latest browsed production with no override, login/model calls/session changes.
+- Plan 004 step 3.1 accepted from Anup's Class 16 confirmation: npm agent-golf used throughout class, five live submissions/two ranked at his reported snapshot. This is reported production E2E evidence, not an assistant-performed solve or current aggregate count.
 - After deploying `fd185d8`, through Cloudflare: `/api/v1/problems` lists both problems with `rules_version` `mvp-3`. `curl` of `/rules` shows `pi install npm:pi-github-copilot-auto@0.3.0` as plain text (no `__cf_email__` link or decode script; Cloudflare strips the `email_off` markers), "Auto may change model during a session; that is fine." and "Setup: any model; any thinking level". Users and submissions unchanged by the redeploy.
 - Re-score at 18:54 IST: only submission 3 changed (unranked, `model_switched` + `usage_not_recorded` → ranked, `usage_not_recorded`). Compared with the backup, no other column, user or stored log changed. The 17:48 IST re-score had cleared the old `custom_setup` from 2 to 6 and ranked 2 and 5.
 - A real solved help_me_unpack session (Pi, free OpenRouter Nemotron, one prompt) ranked on a local server at `96b61dc`: 11,466 tokens, 2 tool calls, 3 model requests; the Hackattic token never appeared in the log. Not kept as a sample (it was the instructor's account).
@@ -33,15 +37,19 @@ Updated: 2026-10-12 (Kiro, for Anup: `fix/rescore-on-resubmit` and `fix/any-mode
 
 ## Blockers / open questions
 - GitHub Actions blocked by an org billing lock; the local gate is the only check.
+- Backup npm maintainer invitations await confirmed usernames/acceptance; follow plugin/RELEASING.md, never share tokens.
+- Published 0.1.1 still has the old model-any guidance; fix next release via plan 005. No new version/tag/spec edit authorized in this merge.
 
 ## Next action
-Prateek: plan 004 step 3.1, end-to-end from a fresh laptop against https://agent-golf.csbasics.in using the rules page's steps, then merge `feature/plan-004` to `main`.
+Prateek: resume plan 005 for the next-release wording/spec cleanup; obtain explicit version/channel/publication approval before npm mutation.
 
 ## Read next (≤6)
 1. `docs/spec.md`
 2. `.agents/plans/README.md`
-3. Your own plan file
-4. `server/README.md` ("Live site")
+3. `.agents/plans/005-plugin-mvp3-follow-up.md`
+4. `.agents/plans/archive/004-plugin-and-deploy.md`
+5. `plugin/RELEASING.md`
+6. `server/README.md` ("Live site")
 
 ## Do not (promote to AGENTS.md at next checkpoint)
 - Do not put server IPs, tokens or keys in this public repo.
