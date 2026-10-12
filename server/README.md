@@ -15,7 +15,7 @@ uv pip install -r server/requirements.txt   # again whenever requirements.txt ch
 | Variable | Default | Meaning |
 |---|---|---|
 | `AGENT_GOLF_DATA_DIR` | `server/data/` (beside this file, whatever the current directory; ignored by git) | SQLite database, and uploaded logs in `uploads/` (never served). Created at startup if missing. The database and every stored log are readable only by the server's user (mode 0600); startup also sets an existing database to 0600. |
-| `AGENT_GOLF_API_BASE_URL` | `http://localhost:8000` | Public origin, for absolute links in upload replies. Live: `https://agent-golf.justuju.in`. |
+| `AGENT_GOLF_API_BASE_URL` | `http://localhost:8000` | Public origin, for absolute links in upload replies. Live: `https://agent-golf.csbasics.in`. |
 
 ## Register
 
@@ -68,7 +68,7 @@ docker build -t agent-golf server/
 docker run -d --name agent-golf -p 127.0.0.1:8000:8000 -v agent-golf-data:/data agent-golf
 ```
 
-Then open http://localhost:8000/register. `127.0.0.1:` keeps the container's plain-HTTP port on this machine only; on the live host the HTTPS proxy is the only way in, so never publish it as `-p 8000:8000`. The image copies `server/` to `/app/server`, leaving out what `.dockerignore` lists (`data/`, `tests/`, review notes, bytecode, and any `*.db`, `*.sqlite`, `.env` or `uploads/`), installs `requirements.txt`, and runs `uvicorn server.app:app` on port 8000 as the non-root user `golf` (uid 10001), which can write only `/data`. Add `-e AGENT_GOLF_API_BASE_URL=…` when the site is reached at another origin than `http://localhost:8000`.
+Then open http://localhost:8000/register. `127.0.0.1:` keeps the container's plain-HTTP port on this machine only; on the live host the Cloudflare Tunnel is the only way in, so never publish it as `-p 8000:8000`. The image copies `server/` to `/app/server`, leaving out what `.dockerignore` lists (`data/`, `tests/`, review notes, bytecode, and any `*.db`, `*.sqlite`, `.env` or `uploads/`), installs `requirements.txt`, and runs `uvicorn server.app:app` on port 8000 as the non-root user `golf` (uid 10001), which can write only `/data`. Add `-e AGENT_GOLF_API_BASE_URL=…` when the site is reached at another origin than `http://localhost:8000`.
 
 The image sets `AGENT_GOLF_DATA_DIR=/data`, a volume, so the database and uploaded logs are never in the image or in the container itself. The named volume `agent-golf-data` keeps them across `docker restart` and across a new container from a new image; `docker volume rm agent-golf-data` deletes them. A new named volume starts empty and owned by `golf`; a bind mount (`-v /some/dir:/data`) must be writable by uid 10001. Without `-v`, Docker makes an anonymous volume that a new container does not reuse.
 
@@ -77,3 +77,21 @@ A scripted test user, as above but inside the container, so in its `/data`:
 ```bash
 KEY=$(docker exec agent-golf python -m server.users alice alice_hackattic)
 ```
+
+## Live site
+
+https://agent-golf.csbasics.in runs on our shared server behind a Cloudflare Tunnel: no ports are opened and no proxy runs on the server for it. Cloudflare serves HTTPS and accepts request bodies up to 100 MB (Free and Pro plans), so the app's own 20 MiB `file_too_large` is the limit students meet. Cloudflare's connector is the `agent-golf-tunnel` container (host network); it reaches the app on `127.0.0.1:8077`, because port 8000 is taken on that server. Leave the connector alone.
+
+To deploy a new version, in the server's `~/agent-golf` checkout of `feature/plan-002`:
+
+```bash
+git pull --ff-only
+docker build -t agent-golf server/
+docker stop agent-golf
+docker rm agent-golf
+docker run -d --name agent-golf --restart unless-stopped -p 127.0.0.1:8077:8000 \
+  -v agent-golf-data:/data -e AGENT_GOLF_API_BASE_URL=https://agent-golf.csbasics.in \
+  agent-golf uvicorn server.app:app --host 0.0.0.0 --port 8000 --no-access-log
+```
+
+The `agent-golf-data` volume keeps users and submissions across new containers. `--no-access-log` keeps request lines, and so any key a student wrongly puts in a URL, out of the server's log.

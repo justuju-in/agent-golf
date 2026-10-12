@@ -26,12 +26,12 @@ updated: 2026-10-11
 - [ ] **Phase 4 — Real counter** (after Amit merges `counter` to `main`)
   - [x] 4.1 Bring `main` into this branch; import from `server.counter`; delete the stand-in; the three `samples/*.jsonl` give the verdicts in `samples/README.md`
   - [ ] 4.2 Upload Anup's solved real session with a test key; it shows a ranked row
-- [ ] **Phase 5 — Docker and deployment at agent-golf.justuju.in**
+- [ ] **Phase 5 — Docker and deployment at agent-golf.csbasics.in**
   - [x] 5.1 `server/Dockerfile`: one image with the website and the counter
   - [x] 5.2 Database and uploads in a mounted volume; survive a container restart
   - [ ] 5.3 Merge `feature/plan-002` to `main`; update `.agents/HANDOFF.md` in that merge
-  - [ ] 5.4 Deploy with HTTPS at agent-golf.justuju.in; confirm a 19 MB upload reaches the app
-  - [ ] 5.5 Keys and uploads never appear in server or proxy logs
+  - [x] 5.4 Deploy with HTTPS at agent-golf.csbasics.in (Cloudflare Tunnel, port 8077); confirm a 19 MB upload reaches the app
+  - [ ] 5.5 Keys and uploads never appear in server or tunnel logs
 - [ ] **Phase 6 — Verification and handoff**
   - [ ] 6.1 Upload each file in `samples/` to the live site with a test key; rows appear correctly
   - [ ] 6.2 Tell Prateek the live site is up, so the plugin's default `AGENT_GOLF_API_BASE_URL` works
@@ -47,13 +47,13 @@ Students can register, upload, and see the board. Done when a solved real sessio
 - Counter: `server/counter/` is Amit's (plan 003, on `main` since `3a5873b`); never create or edit files there. Since 4.1, `server/submissions.py` is the one place that imports it (`score`, `NotPiLogError`, `UNRANKING_REASONS`, `WARNING_REASONS`); the stand-in from 2.3 is deleted. "Solved" is one generic check inside the counter, so the website never needs per-problem scoring code.
 - Problem config (`server/`, from 2.4): one entry per Hackattic problem with slug, title, Hackattic URL, instructions, model (`provider/model` or `"any"`) and thinking level (a level or `"any"`), plus the rules text and `rules_version`. It is the single source for the problem list, the `unknown_problem` check, the `agreed` setup sent to the counter, and the board and rules pages. Adding a problem means adding an entry. Listed: `help_me_unpack` (first, so the home page shows its board) and `brute_force_zip`, both with any model and any thinking level (`"any"`/`"any"`) for Monday, as Step 0 decided for `help_me_unpack` (plan 001) and Anup decided for `brute_force_zip`.
 - Models (`docs/spec.md`, 810982a and c1b61da): only models and levels that actually answered count. With `"any"` the match is skipped, but a model-`"any"` session that used more than one model gets `model_switched` (unranks). The board shows a model column only when the problem's model is `"any"`; the submission page always shows the model.
-- Plugin: Prateek (plan 004) reads the server origin from `AGENT_GOLF_API_BASE_URL` (`http://localhost:8000` locally, `https://agent-golf.justuju.in` live). The website reads the same variable to build the absolute `url` in replies.
+- Plugin: Prateek (plan 004) reads the server origin from `AGENT_GOLF_API_BASE_URL` (`http://localhost:8000` locally, `https://agent-golf.csbasics.in` live). The website reads the same variable to build the absolute `url` in replies.
 - Data: SQLite database and uploaded logs live in `AGENT_GOLF_DATA_DIR` (default `server/data/`, ignored by `server/.gitignore`; `/data` in Docker). Review notes from workflows land in `server/.agents-review/`, ignored by the root `.gitignore`.
 - Local setup: `uv venv --python 3.12 && uv pip install -r server/requirements.txt`; run `.venv/bin/uvicorn server.app:app --port 8000`. `server/README.md` keeps the exact commands.
 - Look: plain, light, server-rendered pages; text `#272426`, accent `#c46c34`. JavaScript only for the copy button; the board reloads with a meta refresh.
 - Public pages show only username, model, numbers and verdicts: never prompts, folder paths, raw logs, keys or Hackattic usernames.
 - `metrics.total_tokens` is `null` when the counter sets `missing_usage` (unranked); pages show "unknown" for it.
-- Upload size: Starlette (under FastAPI) caps non-file multipart fields at 1 MB by default, so read `session` as a file part and enforce 20 MB ourselves; check against the pinned version. The proxy in 5.4 must allow a little over 20 MB per request (nginx defaults to 1 MB), or students hit the proxy's error first.
+- Upload size: Starlette (under FastAPI) caps non-file multipart fields at 1 MB by default, so read `session` as a file part and enforce 20 MB ourselves; check against the pinned version. Live, there is no proxy on the server: Cloudflare (Free and Pro plans) accepts request bodies up to 100 MB, so the app's own 20 MiB `file_too_large` is the limit students meet (checked in 5.4).
 
 ## Steps
 
@@ -142,14 +142,21 @@ Students can register, upload, and see the board. Done when a solved real sessio
 - Result (2026-10-11): `env TMPDIR=server/data/tmp bash tools/check.sh` → `Ran 111 tests … OK`, `gate: ok`. The image now sets `AGENT_GOLF_DATA_DIR=/data` and `VOLUME /data`, with `/data` owned by `golf` and no `server/data/` in the image (`find /app /data`); `docker build -t agent-golf server/` ran clean. Live check (Kiro), Docker 29.4 on OrbStack, fresh volume: `docker run -d --name agent-golf-test -p 8002:8000 -e AGENT_GOLF_API_BASE_URL=http://localhost:8002 -v agent-golf-test-data:/data agent-golf` → `/register` 200, and the new volume took `/data`'s owner (`golf`), with `agent_golf.db` in it. A scratch script under `server/data/tmp/` ran `docker exec agent-golf-test python -m server.users dockeruser …` and wrote the key and an `Authorization` header file there without printing either; `curl -H @<header file>` → `/api/v1/me` 200 `{"username":"dockeruser"}`. `curl -F` upload of `real-second-redacted.jsonl` (from `origin/counter`) → 200 `ranked`, `"url":"http://localhost:8002/submissions/1"`, which opened (200 HTML, "Ranked #1"); `/data` then held `agent_golf.db` and `uploads/1.jsonl` (10,956 bytes, the sample's size), and `docker diff` showed nothing from the app in the container's own layer (only OrbStack's CA certificates). `docker restart agent-golf-test` (uvicorn shut down cleanly) → `/api/v1/me` 200 for the same key, `/submissions/1` 200, and the board's ranked row still there. Since a restart keeps the container's layer, also `docker rm -f agent-golf-test` and a new `docker run` on the same volume → `/api/v1/me` 200, `/submissions/1` 200 (same submitted time), and the same file again → the stored entry's `/submissions/1`. The key was in neither `docker logs` nor the volume's two files (`docker cp` of `/data`, searched by the script). Test container and volume removed afterwards; the `agent-golf` image kept.
 
 #### 5.4 Deploy
-- Files: deployment notes in `server/README.md`
-- Do: Justuju server or a small VPS (any Docker host with a persistent volume and HTTPS); HTTPS before any key is issued; point `agent-golf.justuju.in` at the host's real DNS target, do not guess it; set `AGENT_GOLF_API_BASE_URL=https://agent-golf.justuju.in`; the proxy allows a little over 20 MB per request.
-- Acceptance: `https://agent-golf.justuju.in/` loads, registration works, and a 19 MB upload reaches the app (it answers with the app's own JSON, not a proxy error page).
+- Files: deployment notes in `server/README.md` ("Live site")
+- Do: our shared Docker server, behind a Cloudflare Tunnel (Anup's setup): no ports opened and no proxy on the server. Cloudflare serves HTTPS. Its connector, the `agent-golf-tunnel` container (host network), reaches the app on `127.0.0.1:8077`, because port 8000 is taken on that server. The `agent-golf` container runs `--restart unless-stopped`, the `agent-golf-data` volume at `/data`, `AGENT_GOLF_API_BASE_URL=https://agent-golf.csbasics.in` and `uvicorn … --no-access-log`. The server's address stays out of this public repo.
+- Acceptance: `https://agent-golf.csbasics.in/` loads, registration works, and a 19 MB upload reaches the app (it answers with the app's own JSON, not a proxy error page).
+- Result (2026-10-12): the server's `~/agent-golf` checkout pulled `0e7bc2e` (main's `9b75809` merged); the image was rebuilt and the container recreated with the same volume, port and flags. Users and submissions were unchanged (0 and 0) before and after. Through Cloudflare (`server: cloudflare`, HTTP/2):
+  - `GET /api/v1/problems` → 200 with `help_me_unpack` and `brute_force_zip`.
+  - Registration through the live HTTPS form → 200 key page, and that key passed `GET /api/v1/me`.
+  - A 19 MiB upload (19,923,278 bytes sent) → the app's own `400 not_pi_log`, so Cloudflare passed it and the app read all of it.
+  - A 21 MiB upload (22,020,430 bytes sent) → the app's own `413 file_too_large`, not Cloudflare's error page, so the app sets the limit (Cloudflare allows 100 MB).
+  - Nothing from the test was stored, and its key was not in `docker logs agent-golf`. The test user `deploy_check` was then deleted. Anup's own `test_anup` and its one submission were left alone.
+  - Open: plain `http://agent-golf.csbasics.in` is served without a redirect to HTTPS. Turn on Cloudflare's "Always Use HTTPS" for the zone before students register.
 
 #### 5.5 No keys or uploads in logs
-- Files: `server/` run config, proxy config
-- Do: uvicorn's access log prints query strings, so a key a student wrongly puts in `?key=` is logged even though it is rejected: turn the access log off or strip query strings, in the proxy too. Keep FastAPI's telemetry export off (its redaction does not cover `key`).
-- Acceptance: after a login, an upload and a `GET /api/v1/me?key=<key>` against the live site, searching the server and proxy logs for that key finds nothing.
+- Files: `server/` run config
+- Do: uvicorn's access log prints query strings, so a key a student wrongly puts in `?key=` would be logged even though it is rejected: the live container runs `--no-access-log` (since 5.4). There is no proxy on the server; check the Cloudflare connector's log too. Keep FastAPI's telemetry export off (its redaction does not cover `key`).
+- Acceptance: after a login, an upload and a `GET /api/v1/me?key=<key>` against the live site, searching the server and tunnel logs for that key finds nothing.
 
 ## Validation
 
@@ -167,6 +174,7 @@ Students can register, upload, and see the board. Done when a solved real sessio
 | Model and thinking level per problem, in one website problem config (slug, title, Hackattic URL, instructions, model, thinking level) | Several Hackattic problems this week, possibly with different setups; one source feeds the problem list, `unknown_problem`, `agreed` and the pages | One global setup in the spec |
 | Pages: board, register, key page, submission, rules | Smallest set for tonight; admin work uses the SQLite command line | Player page; admin page |
 | Home page = first listed problem's board, with links to the others | One obvious board for the projector; more problems need no new page | A problem index page |
+| Live behind a Cloudflare Tunnel to `127.0.0.1:8077`, at `agent-golf.csbasics.in`; no proxy or open ports on the server | The server is shared (its own nginx holds 80/443, another app holds 8000); Cloudflare gives HTTPS, keeps the server's address private and passes uploads up to 100 MB | An nginx proxy and open ports on the server; `agent-golf.justuju.in` |
 | `brute_force_zip` open from Monday with `"any"`/`"any"`, listed after `help_me_unpack` | Anup's decision; two of the three samples are ZIP sessions, and the counter scores them as `samples/README.md` says; the home page stays on `help_me_unpack` | Keeping it closed (uploads got `400 unknown_problem`) |
 | Board: model column only when the problem's model is `"any"`; unranked shows each player's latest attempt, only if they have no ranked row | Matches the spec; with one fixed model the column would repeat the same value on every row; keeps the projector board short | Model column always; never a model column; every unranked attempt |
 | Submission page always shows the model and thinking level | Each attempt's setup is visible even when the board hides it | Board only |
@@ -203,3 +211,4 @@ Students can register, upload, and see the board. Done when a solved real sessio
 - 2026-10-11 — Step 0 kept `help_me_unpack` at `"any"`/`"any"` for Monday (recorded in plan 001); the placeholder comment in `server/problems.py` is gone. The done-test is now a solved real session, supplied by Anup and uploaded with a test key, instead of `samples/pass.jsonl`. Next: wait for Amit's counter on `main` (4.1) and Anup's host details (5.4).
 - 2026-10-12 — 4.1 done: merged `main` with Amit's counter (`3a5873b`); `server/submissions.py` imports from `server.counter`; the stand-in and its tests are deleted; `**/test_*.py` added to `.dockerignore`. The three samples give the verdicts in `samples/README.md`. 4.2 is now Anup's solved real session, which replaces the old sample check. Next: 4.2 (Anup's session) and 5.4 (Anup's host details).
 - 2026-10-12 — `brute_force_zip` added to `server/problems.py` (`"any"`/`"any"`, after `help_me_unpack`), with a config test and an upload test. Six tests that assumed `help_me_unpack` was the only problem now either list their own problems or spell out both. Live check: `real-zip-redacted.jsonl` as `brute_force_zip` → `200` ranked, `usage_not_recorded`, 202,053 tokens, as `samples/README.md` says; the home page links the new board, which shows the row with its model. Gate: `Ran 127 tests … OK`, `gate: ok`.
+- 2026-10-12 — 5.4 done: live at https://agent-golf.csbasics.in through a Cloudflare Tunnel (Anup's setup), container on `127.0.0.1:8077`. Merged `main` twice: `9b75809` (Amit's session-wide solved evidence, now deployed) and `8d63ed7` (the domain in `docs/spec.md`). The domain is now `agent-golf.csbasics.in` in this plan's current text and in `server/README.md` (new "Live site" section with the deploy commands); older Changelog lines keep the old name. Open: plain HTTP is served without a redirect (Cloudflare "Always Use HTTPS"), and 5.5's tunnel-log check.
