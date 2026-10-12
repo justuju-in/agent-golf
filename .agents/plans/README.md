@@ -7,9 +7,14 @@ Format and workflow: `.agents/skills/planning/SKILL.md`.
 | Plan | Owner |
 |---|---|
 | [001 — Step 0, all three together](./001-step-0.md) | Anup, Amit, Prateek |
-| [002 — Website, Docker and website deployment](./002-website.md) | Anup |
 | [003 — Counter](./003-counter.md) | Amit |
 | [004 — Pi plugin and going live](./004-plugin-and-deploy.md) | Prateek |
+
+## Completed
+
+| Plan | Owner |
+|---|---|
+| [002 — Website, Docker and website deployment](./archive/002-website.md) | Anup |
 
 ## Conventions
 
@@ -21,3 +26,4 @@ Format and workflow: `.agents/skills/planning/SKILL.md`.
 ## Related plan guidance
 
 - Rules, scoring and the plugin↔website contract live in [`docs/spec.md`](../../docs/spec.md); plans link to it rather than restating it.
+- Website work (`server/` outside `server/counter/`: registration, upload and problem-list API, board, submission and rules pages, Docker, the live deployment): start from the decisions and results in [002 — Website](./archive/002-website.md), and `server/README.md` ("Live site") for deploy steps.

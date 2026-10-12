@@ -1,7 +1,7 @@
 ---
 name: 002-website
 description: Registration, key check, upload and problem-list API, leaderboard pages, Docker and deployment in server/ (never server/counter/).
-status: started
+status: completed
 created: 2026-10-10
 updated: 2026-10-12
 ---
@@ -32,9 +32,9 @@ updated: 2026-10-12
   - [x] 5.3 Merge `feature/plan-002` to `main`; update `.agents/HANDOFF.md` in that merge
   - [x] 5.4 Deploy with HTTPS at agent-golf.csbasics.in (Cloudflare Tunnel, port 8077); confirm a 19 MB upload reaches the app
   - [x] 5.5 Keys and uploads never appear in server or tunnel logs
-- [ ] **Phase 6 — Verification and handoff**
+- [x] **Phase 6 — Verification and handoff**
   - [x] 6.1 ~~Upload each file in `samples/` to the live site with a test key; rows appear correctly~~ Skipped: replaced by the first real student submissions, so no sample rows go on the live board (Anup, 2026-10-12)
-  - [ ] 6.2 Tell Prateek the live site is up, so the plugin's default `AGENT_GOLF_API_BASE_URL` works
+  - [x] 6.2 Tell Prateek the live site is up, so the plugin's default `AGENT_GOLF_API_BASE_URL` works (Anup, 2026-10-12; plugin 0.1.1 defaults to `https://agent-golf.csbasics.in`)
   - [x] 6.3 Gate passes; tick this plan and add to its Changelog
 
 ## Goal
@@ -229,3 +229,4 @@ Students can register, upload, and see the board. Done when a solved real sessio
 - 2026-10-12 — 5.5 done: no test key, `access_token` or upload content in the app's or the tunnel connector's log after a live login, a URL-key request and a marker upload. The connector logs failed requests' URLs during a redeploy only. The test user was deleted, and the live data is empty again.
 - 2026-10-12 — 5.5 approved by Anup. 6.1 skipped: it is replaced by the first real student submissions, so no sample rows go on the live board. The samples already give their `samples/README.md` verdicts locally (4.1). Still open: 4.2 (Anup sends a solved real session after his solve test), 6.2 and 6.3. Nothing more on the server for now.
 - 2026-10-12 — 4.2 done (Anup): a real Nemotron solve was ranked at 11,466 tokens, tested locally on `main` at `96b61dc` (the live code), not on the live site. 6.3 done: `bash tools/check.sh` → `Ran 132 tests … OK`, `gate: ok`. Phases 1 to 5 are complete. Phase 6 stays open only for 6.2 (tell Prateek the live site is up), so the plan stays `started`.
+- 2026-10-12 — 6.2 done: Anup told Prateek the live site is up, and plugin 0.1.1 defaults to `https://agent-golf.csbasics.in`. Plan complete: status `completed`, moved to `.agents/plans/archive/`.
