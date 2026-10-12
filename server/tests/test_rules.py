@@ -43,7 +43,7 @@ class RulesPageTest(PageTestCase):
         self.assertEqual([section.find("h3").text() for section in sections], [problem["title"] for problem in listed])
         self.assertEqual(
             [section.find("p", class_="setup").text() for section in sections],
-            ["Setup: any model, one per session; any thinking level", "Setup: openai/gpt-5.5; thinking level low"],
+            ["Setup: any model; any thinking level", "Setup: openai/gpt-5.5; thinking level low"],
         )
         for section, problem in zip(sections, listed, strict=True):
             with self.subTest(problem=problem["slug"]):

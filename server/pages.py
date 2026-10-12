@@ -28,7 +28,7 @@ REASONS = {
     ),
     "model_switched": (
         "Model switched",
-        "More than one model answered. This problem allows any model, but only one per session.",
+        "More than one model answered. Older rules allowed only one model per session.",
     ),
     "folder_reused": (
         "Folder reused",
@@ -76,8 +76,8 @@ def warnings(reasons: list[str]) -> list[str]:
 
 
 def setup_text(problem: Problem) -> str:
-    """The problem's model and thinking level, e.g. "any model, one per session; any thinking level"."""
-    model = "any model, one per session" if problem.model == "any" else problem.model
+    """The problem's model and thinking level, e.g. "any model; any thinking level"."""
+    model = "any model" if problem.model == "any" else problem.model
     if problem.thinking_level == "any":
         level = "any thinking level"
     else:

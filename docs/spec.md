@@ -13,7 +13,7 @@ Out of scope (version 2): other agents (Claude Code, Codex, OpenCode, Kilo), rou
 
 One attempt = one fresh Pi session in a new, empty folder. Students may make as many attempts as they like; their best solved attempt counts.
 
-1. Setup: the problem's model and thinking level only (shown in the problem list). If a problem allows any model, pick one and keep it for the whole session. No rules files, skills or extra setup.
+1. Setup: the problem's model and thinking level only (shown in the problem list). No rules files, skills or extra setup.
 2. Each attempt: new empty folder, new Pi session, solve from scratch. No code from earlier attempts.
 3. Prompts: plain English only, no code pasted in.
 4. Proof: the program must print both Hackattic's problem reply (the input) and its solve reply (right/wrong).
@@ -29,7 +29,7 @@ One attempt = one fresh Pi session in a new, empty folder. Students may make as 
 
 Model and thinking level are set per problem, not globally. The website keeps a small problem config in `server/`; each entry has `slug`, `title`, Hackattic URL, `instructions`, `model` (`provider/model`, or `"any"`) and `thinking_level` (a level, or `"any"`). That config is the single source for the problem list, the `unknown_problem` check, and the `agreed` setup passed to the counter, taken from the submitted problem's entry. "Solved" is one generic check (see Scoring), so adding a Hackattic problem needs only a new entry.
 
-With `"any"`, the counter skips that match. A problem whose model is `"any"` still needs one model for the whole session: if replies come from more than one model, it is unranked (`model_switched`). Picking a model before the first prompt is fine, because only models that actually answered count (see Scoring). With `thinking_level` `"any"`, thinking-level changes are not flagged. Ranking stays fewest tokens across all models, and the board of a model-`"any"` problem shows each row's model.
+With `"any"`, the counter skips that match. A problem whose model is `"any"` accepts any model, and more than one in a session (GitHub Copilot Auto can change model mid-session); the board lists every model that answered. With `thinking_level` `"any"`, thinking-level changes are not flagged. Ranking stays fewest tokens across all models, and the board of a model-`"any"` problem shows each row's model.
 
 ## Scoring
 
@@ -41,7 +41,7 @@ Rank sessions that have no unranking reason (see [Reason codes](#reason-codes)) 
 | Prompts | Messages with role `user` | Tie-break 1 |
 | Characters typed | Sum of Unicode code points of those user messages (CRLF/CR → LF, no trimming) | Tie-break 2 |
 | Tool calls | Tool-call blocks in assistant content (confirm exact block name from `samples/`) | Shown |
-| Model, thinking level | Only what actually answered: `provider`/`model` and `thinkingLevel` on assistant messages, plus `provider`/`model` on `usage` entries that name a model. `model_change` and `thinking_level_change` entries are ignored for every check (Pi logs one when a student picks a model before the first prompt). | Must match the problem's setup; `"any"` skips that part, but a model-`"any"` session must use one model throughout |
+| Model, thinking level | Only what actually answered: `provider`/`model` and `thinkingLevel` on assistant messages, plus `provider`/`model` on `usage` entries that name a model. `model_change` and `thinking_level_change` entries are ignored for every check (Pi logs one when a student picks a model before the first prompt). | Must match the problem's setup; `"any"` skips that part (a model-`"any"` session may use more than one model) |
 | Solved | A tool result holds Hackattic's `"result": "passed"` reply for the problem's slug, or `"result": "passed (playground mode)"` for a re-solve sent with `&playground=1`. One generic check for every problem; there is no answer re-check. | Must be yes |
 | Folder | Session `cwd` (header line) not used by an earlier submission of this user | Must be new |
 | No custom setup | No extra rules files or skills in the logged system messages | Warning only |
@@ -74,7 +74,7 @@ This section defines key validation only; it does not define submission failure 
 
 ```json
 {
-  "rules_version": "mvp-2",
+  "rules_version": "mvp-3",
   "rules": ["Current contest rules as plain text."],
   "problems": [
     {
@@ -131,7 +131,7 @@ This section defines key validation only; it does not define submission failure 
 | `not_solved` | counter | unranked | no `"result": "passed"` (or playground-mode pass) reply for the problem's slug |
 | `model_mismatch` | counter | unranked | the models that answered (`metrics.models`) are not exactly the problem's model (not checked when it is `"any"`) |
 | `thinking_level_mismatch` | counter | unranked | the assistant messages' thinking levels (`metrics.thinking_levels`) are not exactly the problem's thinking level (not checked when it is `"any"`) |
-| `model_switched` | counter | unranked | the problem's model is `"any"` and more than one model answered (`metrics.models` lists several) |
+| `model_switched` | counter | unranked | no longer emitted (since `mvp-3`); kept so rows scored earlier still show a label |
 | `folder_reused` | counter | unranked | the session's `cwd` is in `prior_folders` |
 | `missing_usage` | counter | unranked | a normal assistant reply has no usage, or the session is a fork whose earlier usage is in another file; `total_tokens` is `null` |
 | `custom_setup` | counter | warning only; stays ranked | a logged system message has context files (`project_context`), skills, an appended prompt (`addendum`), or a section an extension added; Pi's own `preamble`, `tools`, `rules`, `docs` and `cwd` do not count |
@@ -148,7 +148,7 @@ The website sets `status`: `rejected` for a website code; otherwise `unranked` i
 
 `score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]) -> dict`. Pure function: no network, no database.
 
-- `agreed`: `{"model": "provider/model", "thinking_level": "…"}`, the problem's configured setup. Either value may be `"any"`: the counter skips that match, and for model `"any"` it adds `model_switched` when `metrics.models` lists more than one model.
+- `agreed`: `{"model": "provider/model", "thinking_level": "…"}`, the problem's configured setup. Either value may be `"any"`: the counter skips that match, so model `"any"` accepts any number of models.
 - `metrics.models` lists each `provider/model` that actually answered: assistant messages, plus `usage` entries that name a model. `metrics.thinking_levels` lists the `thinkingLevel` values on assistant messages. Both lists ignore `model_change` and `thinking_level_change` entries (no fallback to them for a reply without `thinkingLevel`), and the model and thinking-level checks use only these two lists.
 - `prior_folders`: the `cwd` of each earlier submission by the same user. A resubmitted session leaves its own folder out (earlier copies with the same `session_id` are skipped), so resubmitting never counts as reusing a folder.
 - Returns `session_id` and `cwd` from the session header, plus the `metrics` above and the counter's `reasons`:
