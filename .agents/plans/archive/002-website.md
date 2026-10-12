@@ -1,9 +1,9 @@
 ---
 name: 002-website
 description: Registration, key check, upload and problem-list API, leaderboard pages, Docker and deployment in server/ (never server/counter/).
-status: started
+status: completed
 created: 2026-10-10
-updated: 2026-10-11
+updated: 2026-10-12
 ---
 
 # Website
@@ -23,19 +23,19 @@ updated: 2026-10-11
   - [x] 3.1 Board per problem: ranked rows, then unranked players; 30-second refresh; projector-size text
   - [x] 3.2 Submission page: username, model, numbers, solved, reasons; never prompts, folders or raw log
   - [x] 3.3 Rules page: the seven rules, each problem's instructions and setup, scoring, install and submit steps
-- [ ] **Phase 4 — Real counter** (after Amit merges `counter` to `main`)
+- [x] **Phase 4 — Real counter** (after Amit merges `counter` to `main`)
   - [x] 4.1 Bring `main` into this branch; import from `server.counter`; delete the stand-in; the three `samples/*.jsonl` give the verdicts in `samples/README.md`
-  - [ ] 4.2 Upload Anup's solved real session with a test key; it shows a ranked row
-- [ ] **Phase 5 — Docker and deployment at agent-golf.csbasics.in**
+  - [x] 4.2 Upload Anup's solved real session with a test key; it shows a ranked row
+- [x] **Phase 5 — Docker and deployment at agent-golf.csbasics.in**
   - [x] 5.1 `server/Dockerfile`: one image with the website and the counter
   - [x] 5.2 Database and uploads in a mounted volume; survive a container restart
   - [x] 5.3 Merge `feature/plan-002` to `main`; update `.agents/HANDOFF.md` in that merge
   - [x] 5.4 Deploy with HTTPS at agent-golf.csbasics.in (Cloudflare Tunnel, port 8077); confirm a 19 MB upload reaches the app
-  - [ ] 5.5 Keys and uploads never appear in server or tunnel logs
-- [ ] **Phase 6 — Verification and handoff**
-  - [ ] 6.1 Upload each file in `samples/` to the live site with a test key; rows appear correctly
-  - [ ] 6.2 Tell Prateek the live site is up, so the plugin's default `AGENT_GOLF_API_BASE_URL` works
-  - [ ] 6.3 Gate passes; tick this plan and add to its Changelog
+  - [x] 5.5 Keys and uploads never appear in server or tunnel logs
+- [x] **Phase 6 — Verification and handoff**
+  - [x] 6.1 ~~Upload each file in `samples/` to the live site with a test key; rows appear correctly~~ Skipped: replaced by the first real student submissions, so no sample rows go on the live board (Anup, 2026-10-12)
+  - [x] 6.2 Tell Prateek the live site is up, so the plugin's default `AGENT_GOLF_API_BASE_URL` works (Anup, 2026-10-12; plugin 0.1.1 defaults to `https://agent-golf.csbasics.in`)
+  - [x] 6.3 Gate passes; tick this plan and add to its Changelog
 
 ## Goal
 
@@ -127,6 +127,10 @@ Students can register, upload, and see the board. Done when a solved real sessio
   
   All three match `samples/README.md`, and each reply's link opened as HTML. `brute_force_zip` is not in `problems.py`, so the two ZIP samples were uploaded to a scratch server that added it to the problem list for that run only. On the real app the same upload gets `400 unknown_problem`, so students cannot submit `brute_force_zip` until it is added. The scratch database and stored logs were 0600.
 
+#### 4.2 Real solved session
+- Acceptance: Anup's solved real session, uploaded with a test key, shows a ranked row.
+- Result (2026-10-12, reported by Anup): a real Nemotron solve was ranked at 11,466 tokens. Tested locally on `main` at `96b61dc`, which has the same code as the live deployment (`5e2b2b8`; the two differ only in `.agents/HANDOFF.md` and this plan). It was not uploaded to the live site, so the live board stays free of test rows, as for 6.1.
+
 ### Phase 5 — Docker and deployment
 
 #### 5.1 Dockerfile
@@ -157,6 +161,12 @@ Students can register, upload, and see the board. Done when a solved real sessio
 - Files: `server/` run config
 - Do: uvicorn's access log prints query strings, so a key a student wrongly puts in `?key=` would be logged even though it is rejected: the live container runs `--no-access-log` (since 5.4). There is no proxy on the server; check the Cloudflare connector's log too. Keep FastAPI's telemetry export off (its redaction does not cover `key`).
 - Acceptance: after a login, an upload and a `GET /api/v1/me?key=<key>` against the live site, searching the server and tunnel logs for that key finds nothing.
+- Result (2026-10-12): against https://agent-golf.csbasics.in, with a fresh test user `log_check` registered through the live form (its key kept in a scratch file, never on a command line):
+  - `GET /api/v1/me` with the key in the header → 200; with the key in the URL → 401.
+  - An upload carrying a unique marker and a fake `access_token=` line → the app's own `400 not_pi_log`.
+  - Both logs were then copied read-only (`docker logs`) and searched by a script that printed counts only. In `agent-golf` (4 lines, startup only) and `agent-golf-tunnel` (68 lines, 09:05Z to 09:50Z, no debug lines): the test key 0, the marker 0, `access_token` 0, `Authorization` 0, `Bearer` 0, `?key=` 0, `/api/v1/` 0. The connector logs no line per request.
+  - Its only error lines (20) are failed requests while the app restarted during the two redeploys. They name the request's URL (`dest=`, only `/` seen). A key a student wrongly puts in a URL could reach the connector's log only during a redeploy, so keep redeploys short.
+  - The test user was deleted (its key now gets 401), no upload was stored, and users and submissions are back to 0. `agent-golf-tunnel` was only read, not changed. Cloudflare's own edge logs are outside this check.
 
 ## Validation
 
@@ -175,6 +185,7 @@ Students can register, upload, and see the board. Done when a solved real sessio
 | Pages: board, register, key page, submission, rules | Smallest set for tonight; admin work uses the SQLite command line | Player page; admin page |
 | Home page = first listed problem's board, with links to the others | One obvious board for the projector; more problems need no new page | A problem index page |
 | Live behind a Cloudflare Tunnel to `127.0.0.1:8077`, at `agent-golf.csbasics.in`; no proxy or open ports on the server | The server is shared (its own nginx holds 80/443, another app holds 8000); Cloudflare gives HTTPS, keeps the server's address private and passes uploads up to 100 MB | An nginx proxy and open ports on the server; `agent-golf.justuju.in` |
+| No sample uploads on the live board (6.1); the first real submissions show the rows instead | Students start on 2026-10-12, so sample rows would be fake entries on the projector board; the samples already pass locally (4.1) | Uploading the samples live and deleting them afterwards |
 | `brute_force_zip` open from Monday with `"any"`/`"any"`, listed after `help_me_unpack` | Anup's decision; two of the three samples are ZIP sessions, and the counter scores them as `samples/README.md` says; the home page stays on `help_me_unpack` | Keeping it closed (uploads got `400 unknown_problem`) |
 | Board: model column only when the problem's model is `"any"`; unranked shows each player's latest attempt, only if they have no ranked row | Matches the spec; with one fixed model the column would repeat the same value on every row; keeps the projector board short | Model column always; never a model column; every unranked attempt |
 | Submission page always shows the model and thinking level | Each attempt's setup is visible even when the board hides it | Board only |
@@ -215,3 +226,7 @@ Students can register, upload, and see the board. Done when a solved real sessio
 - 2026-10-12 — Rules page: the install placeholder is replaced by the install step (`pi install npm:agent-golf@preview`), the start commands for each attempt (the plugin pointed at the site's own `AGENT_GOLF_API_BASE_URL`, with no other extensions, skills, context files, MCP or prompt templates) and the in-Pi steps. Rules 8 to 11 were added: token via `HACKATTIC_TOKEN`, the agent's commands print both replies, no `!` commands, no other add-ons. They are in `server/problems.py` and, word for word, in `docs/spec.md` "Rules for students" (a test keeps the two equal), so `rules_version` is now `mvp-2`. Rule 11 says "the start command on the rules page", not "above", because the rules also appear in the spec and in Pi's `/golf-problems`.
 - 2026-10-12 — Redeployed `5e2b2b8` (rules page). Live `/rules` shows the install and start steps, `/api/v1/problems` lists both problems with `rules_version` `mvp-2`, and the user count was unchanged by the redeploy. Then, as Anup asked, deleted the test user `test_anup`, its one submission and its stored log, and nothing else. Both boards show "No submissions yet", and plain HTTP now gets a 301 to HTTPS.
 - 2026-10-12 — 5.3 done: `feature/plan-002` merged into `main` (`--no-ff`) with `.agents/HANDOFF.md` rewritten in that merge commit, without the server's address. Gate on the merged tree: `Ran 132 tests … OK`, `gate: ok`. `feature/plan-002` was then moved to the same commit.
+- 2026-10-12 — 5.5 done: no test key, `access_token` or upload content in the app's or the tunnel connector's log after a live login, a URL-key request and a marker upload. The connector logs failed requests' URLs during a redeploy only. The test user was deleted, and the live data is empty again.
+- 2026-10-12 — 5.5 approved by Anup. 6.1 skipped: it is replaced by the first real student submissions, so no sample rows go on the live board. The samples already give their `samples/README.md` verdicts locally (4.1). Still open: 4.2 (Anup sends a solved real session after his solve test), 6.2 and 6.3. Nothing more on the server for now.
+- 2026-10-12 — 4.2 done (Anup): a real Nemotron solve was ranked at 11,466 tokens, tested locally on `main` at `96b61dc` (the live code), not on the live site. 6.3 done: `bash tools/check.sh` → `Ran 132 tests … OK`, `gate: ok`. Phases 1 to 5 are complete. Phase 6 stays open only for 6.2 (tell Prateek the live site is up), so the plan stays `started`.
+- 2026-10-12 — 6.2 done: Anup told Prateek the live site is up, and plugin 0.1.1 defaults to `https://agent-golf.csbasics.in`. Plan complete: status `completed`, moved to `.agents/plans/archive/`.

@@ -94,4 +94,4 @@ docker run -d --name agent-golf --restart unless-stopped -p 127.0.0.1:8077:8000 
   agent-golf uvicorn server.app:app --host 0.0.0.0 --port 8000 --no-access-log
 ```
 
-The `agent-golf-data` volume keeps users and submissions across new containers. `--no-access-log` keeps request lines, and so any key a student wrongly puts in a URL, out of the server's log.
+The `agent-golf-data` volume keeps users and submissions across new containers. `--no-access-log` keeps request lines, and so any key a student wrongly puts in a URL, out of the server's log. The connector logs no line per request, but while the app is down it logs each failed request with its URL, so keep the gap between `docker stop` and `docker run` short.
