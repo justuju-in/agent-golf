@@ -135,7 +135,7 @@ class BoardTest(PageTestCase):
         page = self.page("/")
         self.assertEqual(page.find("title").text(), "Help me unpack – Agent Golf")
         self.assertEqual(page.find("h1").text(), "Help me unpack")
-        self.assertEqual(page.find("p", class_="setup").text(), "Setup: any model, one per session; any thinking level")
+        self.assertEqual(page.find("p", class_="setup").text(), "Setup: any model; any thinking level")
         self.assertEqual(page.find("p", class_="scoring").text(), SCORING)
         # Reloads itself every 30 seconds.
         self.assertEqual(page.find("meta", http_equiv="refresh").attrs["content"], "30")

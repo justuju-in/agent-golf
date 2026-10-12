@@ -64,8 +64,8 @@ Progress: [Amit's plan](../../.agents/plans/003-counter.md).
 ## Per-problem setup
 
 The website supplies `agreed` from the submitted problem's config. `"any"` skips
-that match. Model `"any"` still requires one answering model: more than one emits
-`model_switched` and prevents ranking. Models come only from assistant messages
+that match. Model `"any"` accepts any number of answering models (`model_switched` is no
+longer emitted). Models come only from assistant messages
 and model-attributed `usage` entries, never selection events or summary metadata.
 Thinking levels come only from assistant messages. Both selection-event types
 are ignored, including selections before the first prompt. With `"any"` thinking,

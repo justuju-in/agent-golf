@@ -13,14 +13,13 @@ import unicodedata
 from dataclasses import dataclass
 
 # Names the wording of RULES: change it whenever the wording changes.
-RULES_VERSION = "mvp-2"
+RULES_VERSION = "mvp-3"
 
 # docs/spec.md, "Rules for students", word for word but without markdown.
 RULES = (
     "One attempt = one fresh Pi session in a new, empty folder. Students may make as many"
     " attempts as they like; their best solved attempt counts.",
-    "1. Setup: the problem's model and thinking level only (shown in the problem list). If a"
-    " problem allows any model, pick one and keep it for the whole session. No rules files,"
+    "1. Setup: the problem's model and thinking level only (shown in the problem list). No rules files,"
     " skills or extra setup.",
     "2. Each attempt: new empty folder, new Pi session, solve from scratch. No code from"
     " earlier attempts.",

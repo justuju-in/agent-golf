@@ -71,7 +71,7 @@ class ProblemConfigTest(unittest.TestCase):
         section = SPEC.read_text(encoding="utf-8").split("## Rules for students\n", 1)[1].split("\n## ", 1)[0]
         rules = [line.strip().replace("`", "") for line in section.splitlines() if line.strip()]
         self.assertEqual(list(problems.RULES), rules)
-        self.assertEqual(problems.RULES_VERSION, "mvp-2")
+        self.assertEqual(problems.RULES_VERSION, "mvp-3")
 
 
 class ProblemListTest(unittest.TestCase):
@@ -87,7 +87,7 @@ class ProblemListTest(unittest.TestCase):
         self.assertEqual(
             response.json(),
             {
-                "rules_version": "mvp-2",
+                "rules_version": "mvp-3",
                 "rules": list(problems.RULES),
                 "problems": [
                     {
@@ -129,7 +129,7 @@ class ProblemListTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         # The rules are still there.
         self.assertEqual(
-            response.json(), {"rules_version": "mvp-2", "rules": list(problems.RULES), "problems": []}
+            response.json(), {"rules_version": "mvp-3", "rules": list(problems.RULES), "problems": []}
         )
 
     def test_only_set_problems_are_listed(self):

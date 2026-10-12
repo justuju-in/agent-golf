@@ -161,8 +161,10 @@ class CounterTests(unittest.TestCase):
         first = assistant()
         second = dict(assistant(), model='other', thinkingLevel='high')
         result = score(log(first, second), 'x', config, set())
-        self.assertIn('model_switched', result['reasons'])
-        self.assertIn('model_switched', UNRANKING_REASONS)
+        # Model "any" allows more than one model in a session: no reason at all.
+        self.assertEqual(result['reasons'], ['not_solved'])
+        self.assertEqual(result['metrics']['models'], ['openai/other', 'openai/test'])
+        self.assertIn('model_switched', UNRANKING_REASONS)  # kept for rows scored earlier
         self.assertNotIn('model_mismatch', result['reasons'])
         self.assertNotIn('thinking_level_mismatch', result['reasons'])
         result = score(log(first, dict(assistant(), thinkingLevel='high')), 'x', config, set())
@@ -212,7 +214,7 @@ class CounterTests(unittest.TestCase):
         result = score('\n'.join(map(json.dumps, entries)), 'x', {'model': 'any', 'thinking_level': 'any'}, set())
         self.assertEqual(result['metrics']['total_tokens'], 17)
         self.assertEqual(result['metrics']['models'], ['openai/other', 'openai/test'])
-        self.assertIn('model_switched', result['reasons'])
+        self.assertNotIn('model_switched', result['reasons'])
 
     def test_fork_usage_stays_unknown(self):
         entries = [json.loads(line) for line in log(assistant()).splitlines()]

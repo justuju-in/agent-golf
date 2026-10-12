@@ -86,10 +86,9 @@ def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]
             usage(entry.get('usage'), required=True)
             if entry.get('model'):
                 models.add(f"{entry.get('provider', '')}/{entry['model']}")
-    if agreed.get('model') == 'any':
-        if len(models) > 1:
-            reasons.add(MODEL_SWITCHED)
-    elif models != {agreed.get('model')}:
+    # Model "any" accepts every model, including more than one in a session (Copilot
+    # Auto may change model mid-session). MODEL_SWITCHED stays defined for older rows.
+    if agreed.get('model') != 'any' and models != {agreed.get('model')}:
         reasons.add(MODEL_MISMATCH)
     if agreed.get('thinking_level') != 'any' and levels != {agreed.get('thinking_level')}:
         reasons.add(THINKING_LEVEL_MISMATCH)
