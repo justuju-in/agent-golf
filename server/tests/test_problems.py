@@ -16,6 +16,7 @@ from server.config import Settings
 
 SPEC = Path(__file__).resolve().parents[2] / "docs" / "spec.md"
 GOOD = problems.get("help_me_unpack")
+ZIP = problems.get("brute_force_zip")
 UNSET = problems.Problem(
     slug="not_set_yet",
     title="Not set yet",
@@ -40,6 +41,15 @@ class ProblemConfigTest(unittest.TestCase):
         # Step 0 (plan 001) kept any model and any thinking level for Monday.
         self.assertEqual((problem.model, problem.thinking_level), ("any", "any"))
 
+    def test_brute_force_zip(self):
+        problem = problems.get("brute_force_zip")
+        self.assertEqual(problem.title, "Brute force ZIP")
+        self.assertEqual(problem.challenge_url, "https://hackattic.com/challenges/brute_force_zip")
+        self.assertTrue(problem.instructions)
+        self.assertEqual((problem.model, problem.thinking_level), ("any", "any"))
+        # Listed after help_me_unpack, so the home page stays help_me_unpack's board.
+        self.assertEqual([listed.slug for listed in problems.listed()], ["help_me_unpack", "brute_force_zip"])
+
     def test_unknown_slugs(self):
         for slug in ("nope", "Help_Me_Unpack", "", None, 3):
             with self.subTest(slug=slug):
@@ -50,7 +60,7 @@ class ProblemConfigTest(unittest.TestCase):
             replace(UNSET, slug="model_only", model="any"),
             replace(UNSET, slug="level_only", thinking_level="low"),
         )
-        with mock.patch.object(problems, "PROBLEMS", (*problems.PROBLEMS, UNSET, *half_set)):
+        with mock.patch.object(problems, "PROBLEMS", (GOOD, UNSET, *half_set)):
             self.assertEqual([problem.slug for problem in problems.listed()], ["help_me_unpack"])
             for slug in ("not_set_yet", "model_only", "level_only"):
                 with self.subTest(slug=slug):
@@ -87,7 +97,15 @@ class ProblemListTest(unittest.TestCase):
                         "instructions": list(GOOD.instructions),
                         "model": "any",
                         "thinking_level": "any",
-                    }
+                    },
+                    {
+                        "slug": "brute_force_zip",
+                        "title": "Brute force ZIP",
+                        "challenge_url": "https://hackattic.com/challenges/brute_force_zip",
+                        "instructions": list(ZIP.instructions),
+                        "model": "any",
+                        "thinking_level": "any",
+                    },
                 ],
             },
         )
@@ -100,7 +118,10 @@ class ProblemListTest(unittest.TestCase):
             with self.subTest(headers=headers):
                 response = self.get_list(headers)
                 self.assertEqual(response.status_code, 200)
-                self.assertEqual([problem["slug"] for problem in response.json()["problems"]], ["help_me_unpack"])
+                self.assertEqual(
+                    [problem["slug"] for problem in response.json()["problems"]],
+                    [problem.slug for problem in problems.listed()],
+                )
 
     def test_empty_list(self):
         with mock.patch.object(problems, "PROBLEMS", ()):
@@ -112,7 +133,7 @@ class ProblemListTest(unittest.TestCase):
         )
 
     def test_only_set_problems_are_listed(self):
-        with mock.patch.object(problems, "PROBLEMS", (*problems.PROBLEMS, UNSET, FIXED)):
+        with mock.patch.object(problems, "PROBLEMS", (GOOD, UNSET, FIXED)):
             listed = self.get_list().json()["problems"]
         self.assertEqual(
             [(problem["slug"], problem["model"], problem["thinking_level"]) for problem in listed],

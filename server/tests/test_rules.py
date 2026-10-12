@@ -5,7 +5,7 @@ from dataclasses import replace
 from unittest import mock
 
 from server import problems
-from server.tests.test_board import FIXED, SCORING, UNSET, PageTestCase
+from server.tests.test_board import FIXED, HELP, SCORING, UNSET, PageTestCase
 
 PLACEHOLDER = "Install steps for the Pi plugin will be added here when the plugin is published."
 
@@ -20,7 +20,7 @@ class RulesPageTest(PageTestCase):
         self.assertEqual(rules, list(problems.RULES))
 
     def test_the_problems_and_setups_of_the_problem_list(self):
-        with mock.patch.object(problems, "PROBLEMS", (*problems.PROBLEMS, UNSET, FIXED)):
+        with mock.patch.object(problems, "PROBLEMS", (HELP, UNSET, FIXED)):
             listed = self.client.get("/api/v1/problems").json()["problems"]
             page = self.page("/rules")
         sections = page.find_all("section", class_="problem")

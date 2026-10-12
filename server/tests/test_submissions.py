@@ -408,6 +408,17 @@ class SubmissionsTest(UploadTestCase):
         self.upload(session(turns=2))
         self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
 
+    def test_brute_force_zip_is_accepted(self):
+        response = self.upload(session(), problem="brute_force_zip")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ranked")
+        # Scored for its own slug, with its own setup from problems.py.
+        self.assertEqual(
+            self.counter.calls[-1], ("brute_force_zip", {"model": "any", "thinking_level": "any"}, set())
+        )
+        (row,) = self.rows()
+        self.assertEqual(row["problem"], "brute_force_zip")
+
     def test_resubmitting_for_another_problem_replaces(self):
         content = session()
         with mock.patch.object(problems, "PROBLEMS", (*problems.PROBLEMS, FIXED)):

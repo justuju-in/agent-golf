@@ -19,6 +19,9 @@ from server.tests.dom import parse
 
 NOW = datetime(2026, 10, 11, 12, 0, tzinfo=UTC)
 SCORING = "Fewest tokens wins. Ties: fewer prompts, then fewer characters."
+# The real help_me_unpack entry. Tests of how several problems behave list their own
+# problems with it, so new entries in problems.py do not change them.
+HELP = problems.get("help_me_unpack")
 # Another listed problem with one fixed model, and one whose setup is not set yet.
 FIXED = problems.Problem(
     slug="fixed_setup",
@@ -290,7 +293,7 @@ class BoardTest(PageTestCase):
         self.assertEqual(self.table(page, "unranked")[1:], [["bob", "Not solved", "just now"]])
 
     def test_home_is_the_first_listed_problems_board(self):
-        with mock.patch.object(problems, "PROBLEMS", (*problems.PROBLEMS, UNSET, FIXED)):
+        with mock.patch.object(problems, "PROBLEMS", (HELP, UNSET, FIXED)):
             self.upload("alice", session("a1"))
             self.upload("bob", session("b1"), problem="fixed_setup")
             home = self.client.get("/")
@@ -309,7 +312,9 @@ class BoardTest(PageTestCase):
             [(a.attrs["href"], a.text()) for a in others.find_all("a")], [("/problems/help_me_unpack", "Help me unpack")]
         )
         # With one problem there are no others to link.
-        self.assertEqual(self.page("/").find_all("p", class_="other-boards"), [])
+        with mock.patch.object(problems, "PROBLEMS", (HELP,)):
+            alone = self.page("/")
+        self.assertEqual(alone.find_all("p", class_="other-boards"), [])
 
     def test_no_problems_listed(self):
         with mock.patch.object(problems, "PROBLEMS", (UNSET,)):

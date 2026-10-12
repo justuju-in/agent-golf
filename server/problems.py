@@ -63,6 +63,21 @@ PROBLEMS = (
         model="any",
         thinking_level="any",
     ),
+    Problem(
+        slug="brute_force_zip",
+        title="Brute force ZIP",
+        challenge_url="https://hackattic.com/challenges/brute_force_zip",
+        instructions=(
+            "Solve Hackattic's Brute force ZIP challenge with your own Hackattic account. The"
+            " task and its JSON formats are on the challenge page.",
+            "Your program must fetch the problem from hackattic.com, send its answer back"
+            " there, and print both of Hackattic's replies: the problem (the input) and the"
+            " solve reply.",
+            'It counts as solved only when that printed solve reply says "result": "passed".',
+        ),
+        model="any",
+        thinking_level="any",
+    ),
 )
 
 
