@@ -51,13 +51,8 @@ def solved(entries, problem):
                                    for obj in json_objects(text_content(message)))
     if not passed:
         return False
-    endpoint = re.compile(r'hackattic\.com/challenges/' + re.escape(problem) + r'(?![a-z0-9_])')
-    if any(endpoint.search(source) for source in sources):
-        return True
-    # Retain support for explicitly named slugs in script-built URLs.
-    # Host-only evidence cannot distinguish the submitted problem.
-    for source in sources:
-        slugs = re.findall(r"(?:slug|problem|challenge)\s*=\s*['\"]([a-z0-9_]+)['\"]", source)
-        if 'hackattic.com' in source and problem in slugs:
-            return True
-    return False
+    # One command or file must name both Hackattic and the problem, however the URL
+    # is assembled (base + path, f-strings, a slug variable). The slug must stand
+    # alone, so help_me_unpack does not match help_me_unpack_extra.
+    slug = re.compile(r'(?<![a-z0-9_])' + re.escape(problem) + r'(?![a-z0-9_])')
+    return any('hackattic.com' in source and slug.search(source) for source in sources)

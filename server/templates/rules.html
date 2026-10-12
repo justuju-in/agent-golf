@@ -41,7 +41,7 @@
     <p class="command"><code>export HACKATTIC_TOKEN=&lt;your Hackattic token&gt;</code></p>
     <p class="command"><code>AGENT_GOLF_API_BASE_URL={{ api_base_url }} pi --no-extensions -e ~/.pi/agent/npm/node_modules/agent-golf --no-skills --no-context-files --no-mcp --no-prompt-templates</code></p>
     <p class="in-pi">In Pi: <code>/golf-login &lt;your key&gt;</code> (once), pick your model with <code>/model</code> before your first prompt, solve, then <code>/golf-submit &lt;problem&gt;</code>.</p>
-    <p>Already solved the problem on Hackattic before? Hackattic then rejects a new answer unless the solve URL ends with <code>&amp;playground=1</code>. Tell your agent to add it; a <code>passed (playground mode)</code> reply counts as solved here.</p>
+    <p>If you have already solved the problem on Hackattic, Hackattic rejects further answers unless the submission URL includes <code>&amp;playground=1</code>, i.e. <code>…/solve?access_token=&lt;token&gt;&amp;playground=1</code>. Include this in your prompt. The board accepts the resulting <code>"passed (playground mode)"</code> reply as solved.</p>
 
     <h2 id="copilot">Using GitHub Copilot</h2>
     <p>Install the Copilot Auto extension (once):</p>
