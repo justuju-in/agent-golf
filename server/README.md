@@ -39,7 +39,7 @@ curl -s -i -H "Authorization: Bearer $KEY" -F problem=help_me_unpack -F session=
   http://localhost:8000/api/v1/submissions
 ```
 
-Add `-F folder_was_empty=true` (or `false`) to send what the plugin records; it is stored and has no effect on ranking. The reply is "Contract: website → plugin" in [`../docs/spec.md`](../docs/spec.md): `200` with `ranked` or `unranked`, or `401`, `400` or `413` with `rejected` and a reason; `500` means a counter bug. Its `url` opens the submission's page. The same file again returns the stored entry; the same session again replaces it, keeping its `url`. The raw file is kept in `uploads/` in the data directory, readable only by the server's user (mode 0600), and never served.
+Add `-F folder_was_empty=true` (or `false`) to send what the plugin records; it is stored and has no effect on ranking. The reply is "Contract: website → plugin" in [`../docs/spec.md`](../docs/spec.md): `200` with `ranked` or `unranked`, or `401`, `400` or `413` with `rejected` and a reason; `500` means a counter bug. Its `url` opens the submission's page. The same file again is scored again with the current counter, and only its verdict changes: everything else stays, its upload times and `url` included. A changed file of the same session, or the same file for another problem, replaces the entry, keeping its `url`. The raw file is kept in `uploads/` in the data directory, readable only by the server's user (mode 0600), and never served.
 
 Scoring is the counter in `counter/` (plan 003), imported only in `submissions.py`. Problems and their setup live in `problems.py`; only problems whose model and thinking level are set are accepted.
 

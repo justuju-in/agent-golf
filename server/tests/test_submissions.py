@@ -421,9 +421,12 @@ class SubmissionsTest(UploadTestCase):
 
     def test_resubmitting_for_another_problem_replaces(self):
         content = session()
-        with mock.patch.object(problems, "PROBLEMS", (*problems.PROBLEMS, FIXED)):
+        times = ["2026-10-11T10:00:00+00:00", "2026-10-11T10:05:00+00:00"]
+        listed = mock.patch.object(problems, "PROBLEMS", (*problems.PROBLEMS, FIXED))
+        with listed, mock.patch.object(submissions, "utc_now", side_effect=times):
             first = self.upload(content).json()
-            # The same file, but for another problem: scored again, with that problem's setup.
+            # The same file, but for another problem: scored again, with that problem's setup,
+            # and it replaces the row like any resubmission, upload time included.
             second = self.upload(content, problem="fixed_setup").json()
         self.assertEqual(second["url"], first["url"])
         self.assertEqual(
@@ -431,31 +434,89 @@ class SubmissionsTest(UploadTestCase):
         )
         (row,) = self.rows()
         self.assertEqual(row["problem"], "fixed_setup")
+        self.assertEqual((row["first_submitted_at"], row["submitted_at"]), tuple(times))
 
-    def test_same_file_twice(self):
+    def test_same_file_again_updates_only_its_verdict(self):
+        # Scored again, so resubmitting an unchanged session picks up a counter fix; only
+        # its verdict changes.
         content = session()
-        first = self.upload(content, folder_was_empty="true")
-        self.counter.reasons = ["not_solved"]  # would change the verdict if scored again
-        again = self.upload(content, folder_was_empty="false")
+        self.counter.reasons = ["not_solved"]
+        with mock.patch.object(submissions, "utc_now", return_value="2026-10-11T10:00:00+00:00"):
+            first = self.upload(content, folder_was_empty="true").json()
+        (before,) = self.rows()
+        fixed = FakeCounter()  # the counter after a fix: the same file is solved now
+        later = mock.patch.object(submissions, "utc_now", return_value="2026-10-11T10:05:00+00:00")
+        saving = mock.patch.object(submissions, "save_upload", wraps=submissions.save_upload)
+        with later, mock.patch.object(submissions, "score", fixed), saving as save_upload:
+            response = self.upload(content, folder_was_empty="false")
+        self.assertEqual((first["status"], first["reasons"]), ("unranked", ["not_solved"]))
+        self.assertEqual(response.status_code, 200)
+        expected = FakeCounter()(content.decode(), "help_me_unpack", AGREED, set())["metrics"]
+        # The new verdict, at the same link.
+        self.assertEqual(
+            response.json(), {"status": "ranked", "reasons": [], "metrics": expected, "url": first["url"]}
+        )
+        # Scored as any upload is: twice, with the problem's setup; its own folder is no reuse.
+        self.assertEqual(fixed.calls, [("help_me_unpack", AGREED, set())] * 2)
+        # Still one row, and only its verdict changed: same id, upload times, file hash and
+        # folder_was_empty (not this upload's "false"). The stored file is not rewritten.
+        (row,) = self.rows()
+        verdict = ("status", "reasons", "metrics")
+        self.assertEqual(
+            (row["status"], json.loads(row["reasons"]), json.loads(row["metrics"])), ("ranked", [], expected)
+        )
+        self.assertEqual(
+            {name: value for name, value in row.items() if name not in verdict},
+            {name: value for name, value in before.items() if name not in verdict},
+        )
+        save_upload.assert_not_called()
+        self.assertEqual(self.stored_file(row), content)
+
+    def test_same_file_again_with_the_same_verdict(self):
+        content = session()
+        with mock.patch.object(submissions, "utc_now", return_value="2026-10-11T10:00:00+00:00"):
+            first = self.upload(content)
+        (before,) = self.rows()
+        with mock.patch.object(submissions, "utc_now", return_value="2026-10-11T10:05:00+00:00"):
+            again = self.upload(content)
         self.assertEqual(again.status_code, 200)
         self.assertEqual(again.json(), first.json())
-        self.assertEqual(len(self.counter.calls), 2)  # from the first upload only
-        (row,) = self.rows()
-        self.assertEqual((row["status"], row["folder_was_empty"]), ("ranked", 1))
+        self.assertEqual(len(self.counter.calls), 4)  # scored again: twice per upload
+        # Nothing changed, its submitted time included.
+        self.assertEqual(self.rows(), [before])
         # Another student's identical file is their own entry.
         bob = self.upload(content, key=self.bob_key).json()
         self.assertNotEqual(bob["url"], first.json()["url"])
         self.assertEqual(len(self.rows()), 2)
+
+    def test_same_file_again_when_the_counter_fails(self):
+        # Scored again, so a counter bug, or a counter that no longer reads the file, reaches
+        # it too: the replies any upload gets, and nothing changes.
+        content = session()
+        self.upload(content)
+        (before,) = self.rows()
+        crash = mock.patch.object(submissions, "score", side_effect=ValueError("bug"))
+        with crash, self.assertLogs("server.submissions", logging.ERROR):
+            response = self.upload(content)
+        self.assertEqual((response.status_code, response.json()), (500, {"error": "server_error"}))
+        not_pi_log = mock.patch.object(submissions, "score", side_effect=submissions.NotPiLogError("no header"))
+        with not_pi_log:
+            self.assert_rejected(self.upload(content), 400, "not_pi_log")
+        self.assertEqual(self.rows(), [before])
+        self.assertEqual(self.stored_file(before), content)
 
     def test_folder_reused(self):
         self.assertEqual(self.upload(session("s-1", "/work/a")).json()["reasons"], [])
         second = self.upload(session("s-2", "/work/a")).json()
         self.assertEqual((second["status"], second["reasons"]), ("unranked", ["folder_reused"]))
         self.assertEqual(self.counter.calls[-1][2], {"/work/a"})
-        # Resubmitting the first session is still no reuse, though a later one used its folder.
-        again = self.upload(session("s-1", "/work/a", turns=2)).json()
-        self.assertEqual((again["status"], again["reasons"]), ("ranked", []))
-        self.assertEqual(self.counter.calls[-1][2], set())
+        # Resubmitting the first session is still no reuse, though a later one used its folder:
+        # the same file again (scored again), then a longer one.
+        for turns in (1, 2):
+            with self.subTest(turns=turns):
+                again = self.upload(session("s-1", "/work/a", turns=turns)).json()
+                self.assertEqual((again["status"], again["reasons"]), ("ranked", []))
+                self.assertEqual(self.counter.calls[-1][2], set())
         # Resubmitting the second still is one.
         again = self.upload(session("s-2", "/work/a", turns=2)).json()
         self.assertEqual(again["reasons"], ["folder_reused"])
