@@ -2,34 +2,35 @@
 
 <!-- Overwrite, don't append. Keep under 60 lines. History lives in plans and git. -->
 
-Updated: 2026-10-12 14:45 IST (Claude, merging `counter` `311ea1d` into `main` for Anup)
+Updated: 2026-10-12 15:15 IST (Claude, for Anup, on `main`)
 
 ## Active work
-- `main` now has the real counter (`server/counter/`, Amit, plan 003, up to `311ea1d`) and the redacted samples.
-- Website: `feature/plan-002` (Anup/Kiro) uses the real counter (4.1 done), has `help_me_unpack` and `brute_force_zip` open, and runs on the Justuju server (104.225.219.86, container on 127.0.0.1:8077) behind a Cloudflare Tunnel being set up; the public domain is moving from justuju.in to csbasics.in.
-- Plugin: `feature/plan-004` (Prateek); `agent-golf@0.1.0` is published on npm (`pi install npm:agent-golf@preview`). Left: 3.1 live end-to-end, 3.2.
-- Running: nothing.
+- Live: https://agent-golf.csbasics.in (Cloudflare Tunnel to the Justuju server; app container on 127.0.0.1:8077). Deployed from `feature/plan-002` at `316e6f7`, which includes the real counter and Amit's `311ea1d` solved-check fix.
+- Open problems: `help_me_unpack` and `brute_force_zip`, both model "any", thinking level "any".
+- Plugin: `agent-golf@0.1.0` on npm still defaults to agent-golf.justuju.in; until Prateek publishes the csbasics.in default, students set `AGENT_GOLF_API_BASE_URL=https://agent-golf.csbasics.in`.
+- Running: the `agent-golf` and `agent-golf-tunnel` containers on the server.
 
 ## Verified (2026-10-12)
-- Counter on `main`: `Ran 22 tests … OK`; samples give the verdicts in `samples/README.md`.
-- `feature/plan-002` + `counter`, with the import swapped locally (not pushed): gate `Ran 136 tests … OK`.
-- Live local uploads through the website with the real counter: a solved session → ranked; wrong answer → `not_solved`; two models under "any" → `model_switched`; a `passed` reply for another challenge → `not_solved`; same folder twice → `folder_reused`; junk → 400 `not_pi_log`; no 500s.
-- `custom_setup` (warning only) appears on `real-wrong-answer-redacted.jsonl` because its system message lists rules and skills.
+- `feature/plan-002` gate: `Ran 132 tests … OK`; counter on `main`: 27 tests OK.
+- Live: problem list, register, `/api/v1/me`, `/golf-login`, `/golf-submit` and the board all work through https://agent-golf.csbasics.in; a 19 MiB upload reaches the app, 21 MiB gets the app's own 413.
+- Solved check (`311ea1d`): heredoc-written scripts, `cd` before running, and a `passed` reply followed by an error count as solved; a pre-existing script never written in the session, a `passed` for another challenge and a rejected answer do not.
 
 ## Decisions
-- `help_me_unpack` stays model `"any"`, thinking level `"any"` for the first week (plan 001 on `feature/plan-002`).
 - MVP is Pi-only; Hackattic's reply in the log is the only evidence; anti-cheat is version 2.
-
-- `311ea1d` solved check: heredoc-written scripts, `cd` before running, and a `passed` reply followed by an error now count as solved; a pre-existing script never written in the session, a `passed` for another challenge, and a rejected answer do not (checked with constructed sessions).
+- Problems use model "any" / thinking level "any" for the first week.
+- Domain moved from justuju.in to csbasics.in; hosted behind a Cloudflare Tunnel, not a proxy on the server.
 
 ## Blockers / open questions
-- No real *solved* session sample yet: the samples' Hackattic commands are redacted, so the solved path is tested only with constructed logs. Anup to supply one.
-- Deployment (plan 002, 5.4): host, CPU type, SSH or Anup runs commands, DNS for `agent-golf.justuju.in`, ports 80/443.
-- Plan 003 still has 1.2, 2.5, 3.1, 3.2 unticked although the work is in; Amit to tick.
-- GitHub Actions is blocked by an org billing lock; the local gate is the only check.
+- Plugin `0.1.1` with the csbasics.in default (Prateek).
+- Rules page still has the install-steps placeholder and lacks the student rules (token via env var, no `!commands`, no extra Pi packages).
+- `custom_setup` warning appears even for a clean Pi session (Amit to check).
+- Cloudflare "Always Use HTTPS" not yet on for csbasics.in.
+- `test_anup` test user and its submission are on the live board; delete before students start.
+- Real solved session sample still missing (plan 002 step 4.2).
+- GitHub Actions blocked by an org billing lock; the local gate is the only check.
 
 ## Next action
-Kiro: plan 002 step 4.1 on `feature/plan-002`, then 4.2 with Anup's solved session; then 5.4 once host details arrive.
+Kiro: rules page install steps and rules, gate, push, redeploy. Then 5.3 (merge `feature/plan-002` to `main`, updating this file).
 
 ## Read next (≤6)
 1. `docs/spec.md`
@@ -37,4 +38,4 @@ Kiro: plan 002 step 4.1 on `feature/plan-002`, then 4.2 with Anup's solved sessi
 3. Your own plan file
 
 ## Do not (promote to AGENTS.md at next checkpoint)
-- none yet
+- Do not put server IPs, tokens or keys in this public repo.
