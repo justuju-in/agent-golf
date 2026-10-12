@@ -42,7 +42,7 @@ Rank sessions that have no unranking reason (see [Reason codes](#reason-codes)) 
 | Characters typed | Sum of Unicode code points of those user messages (CRLF/CR → LF, no trimming) | Tie-break 2 |
 | Tool calls | Tool-call blocks in assistant content (confirm exact block name from `samples/`) | Shown |
 | Model, thinking level | Only what actually answered: `provider`/`model` and `thinkingLevel` on assistant messages, plus `provider`/`model` on `usage` entries that name a model. `model_change` and `thinking_level_change` entries are ignored for every check (Pi logs one when a student picks a model before the first prompt). | Must match the problem's setup; `"any"` skips that part, but a model-`"any"` session must use one model throughout |
-| Solved | A tool result holds Hackattic's `"result": "passed"` reply for the problem's slug. One generic check for every problem; there is no answer re-check. | Must be yes |
+| Solved | A tool result holds Hackattic's `"result": "passed"` reply for the problem's slug, or `"result": "passed (playground mode)"` for a re-solve sent with `&playground=1`. One generic check for every problem; there is no answer re-check. | Must be yes |
 | Folder | Session `cwd` (header line) not used by an earlier submission of this user | Must be new |
 | No custom setup | No extra rules files or skills in the logged system messages | Warning only |
 | Consistency | Cost matches tokens; timestamps in order; `parentId` chain unbroken; input grows as the chat grows | Warning only |
@@ -128,13 +128,13 @@ This section defines key validation only; it does not define submission failure 
 
 | Code | Set by | Effect | When |
 |---|---|---|---|
-| `not_solved` | counter | unranked | no `"result": "passed"` reply for the problem's slug |
+| `not_solved` | counter | unranked | no `"result": "passed"` (or playground-mode pass) reply for the problem's slug |
 | `model_mismatch` | counter | unranked | the models that answered (`metrics.models`) are not exactly the problem's model (not checked when it is `"any"`) |
 | `thinking_level_mismatch` | counter | unranked | the assistant messages' thinking levels (`metrics.thinking_levels`) are not exactly the problem's thinking level (not checked when it is `"any"`) |
 | `model_switched` | counter | unranked | the problem's model is `"any"` and more than one model answered (`metrics.models` lists several) |
 | `folder_reused` | counter | unranked | the session's `cwd` is in `prior_folders` |
 | `missing_usage` | counter | unranked | a normal assistant reply has no usage, or the session is a fork whose earlier usage is in another file; `total_tokens` is `null` |
-| `custom_setup` | counter | warning only; stays ranked | extra rules files or skills in the logged system messages |
+| `custom_setup` | counter | warning only; stays ranked | a logged system message has context files (`project_context`), skills, an appended prompt (`addendum`), or a section an extension added; Pi's own `preamble`, `tools`, `rules`, `docs` and `cwd` do not count |
 | `inconsistent_log` | counter | warning only; stays ranked | a Consistency check in Scoring fails |
 | `usage_not_recorded` | counter | warning only; stays ranked | an errored or aborted reply had no (or zero) usage, or a compaction or branch summary had none (optional in Pi's format); counted as 0 |
 | `bad_key` | website | rejected, HTTP 401 | missing or unknown key |
