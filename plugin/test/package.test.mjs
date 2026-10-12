@@ -9,8 +9,16 @@ import { startPi } from "./rpc-helper.mjs";
 
 const execute = promisify(execFile);
 const FILES = ["LICENSE", "README.md", "config.ts", "index.ts", "login.ts", "package.json", "problem-view.ts", "problems.ts", "submit.ts", "user-bash.ts"].sort();
+// The interactive-Pi smoke test (tui-browser-smoke.py) is opt-in: it needs a real Pi that gets
+// ready within the script's 8-second wait, which not every machine does, and the default gate
+// must pass anyway. Run it before each release: AGENT_GOLF_TUI_TESTS=1 bash tools/check.sh
+// (RELEASING.md). The script exits 77, reported here as a skip, when pi is not on PATH.
+const TUI_SKIP = process.platform === "win32" ? true
+  : process.env.AGENT_GOLF_TUI_TESTS === "1" ? false
+  : "set AGENT_GOLF_TUI_TESTS=1 to run the interactive Pi TUI smoke test (needs pi on PATH)";
+const TUI_NO_PI = 77;
 
-test("npm artifact contains only public runtime files and installs independently of the repo", { timeout: 60_000 }, async () => {
+test("npm artifact contains only public runtime files and installs independently of the repo", { timeout: 60_000 }, async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "golf-package-"));
   let client;
   try {
@@ -64,10 +72,15 @@ test("npm artifact contains only public runtime files and installs independently
     assert.deepEqual((await client.request("get_messages")).messages, messages);
     assert.equal((await client.request("get_session_stats")).tokens.total, 0);
     assert.equal(client.seen.some((record) => record.type === "agent_start" || record.type === "message_start"), false);
-    if (process.platform !== "win32") {
-      const { stdout } = await execute("python3", [resolve("test/tui-browser-smoke.py"), join(root, "index.ts")], { timeout: 40_000 });
-      assert.match(stdout, /REAL TUI PASS/, "packed artifact also loads its custom TUI dependency through Pi");
-    }
+    await t.test("packed artifact also loads its custom TUI dependency through interactive Pi", { skip: TUI_SKIP }, async (tui) => {
+      try {
+        const { stdout } = await execute("python3", [resolve("test/tui-browser-smoke.py"), join(root, "index.ts")], { timeout: 40_000 });
+        assert.match(stdout, /REAL TUI PASS/, "packed artifact also loads its custom TUI dependency through Pi");
+      } catch (error) {
+        if (error.code !== TUI_NO_PI) throw error;
+        tui.skip(error.stderr.trim());
+      }
+    });
   } finally {
     try { await client?.close(); } finally { await rm(directory, { recursive: true, force: true }); }
   }

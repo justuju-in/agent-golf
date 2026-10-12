@@ -5,6 +5,7 @@ import os
 import pty
 import re
 import select
+import shutil
 import signal
 import struct
 import subprocess
@@ -15,6 +16,13 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+
+# Exit status 77 means "skipped" (as in automake and meson). The Node tests that run this
+# script report it as a skip, not a failure; without this check Popen(["pi", ...]) crashes.
+SKIPPED = 77
+if shutil.which("pi") is None:
+    print("SKIP: pi is not on PATH; this smoke test drives a real interactive Pi", file=sys.stderr)
+    sys.exit(SKIPPED)
 
 
 class Handler(BaseHTTPRequestHandler):
