@@ -5,13 +5,14 @@ from .hackattic import solved
 
 NOT_SOLVED = 'not_solved'
 MODEL_MISMATCH = 'model_mismatch'
+MODEL_SWITCHED = 'model_switched'
 THINKING_LEVEL_MISMATCH = 'thinking_level_mismatch'
 FOLDER_REUSED = 'folder_reused'
 CUSTOM_SETUP = 'custom_setup'
 INCONSISTENT_LOG = 'inconsistent_log'
 MISSING_USAGE = 'missing_usage'
 USAGE_NOT_RECORDED = 'usage_not_recorded'
-UNRANKING_REASONS = frozenset({NOT_SOLVED, MODEL_MISMATCH,
+UNRANKING_REASONS = frozenset({NOT_SOLVED, MODEL_MISMATCH, MODEL_SWITCHED,
                              THINKING_LEVEL_MISMATCH, FOLDER_REUSED, MISSING_USAGE})
 WARNING_REASONS = frozenset({CUSTOM_SETUP, INCONSISTENT_LOG, USAGE_NOT_RECORDED})
 
@@ -22,15 +23,13 @@ def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]
                    models=[], thinking_levels=[], solved=False)
     reasons = set()
     models, levels, seen = set(), set(), set()
-    states = {}
     last_time = None
-    assistant_count = 0
 
-    def usage(value, required=False, errored=False):
+    def usage(value, required=False, errored=False, summary=False):
         if value is None and not required:
             return
         total = value.get('totalTokens') if isinstance(value, dict) else None
-        if errored and (total is None or total == 0) and not isinstance(total, bool):
+        if ((errored and (total is None or total == 0)) or (summary and total is None)) and not isinstance(total, bool):
             reasons.add(USAGE_NOT_RECORDED)
             return
         if not isinstance(total, int) or isinstance(total, bool) or total < 0:
@@ -52,14 +51,6 @@ def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]
             last_time = stamp
         except (KeyError, ValueError, TypeError, AttributeError):
             reasons.add(INCONSISTENT_LOG)
-        model, level = states.get(parent, (None, None))
-        if kind == 'model_change':
-            model = f"{entry.get('provider', '')}/{entry.get('modelId', '')}"
-            models.add(model)
-        elif kind == 'thinking_level_change':
-            level = entry.get('thinkingLevel')
-            if isinstance(level, str):
-                levels.add(level)
         message = entry.get('message', {})
         role = message.get('role')
         if role == 'user':
@@ -68,15 +59,12 @@ def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]
             if any(b.get('type') == 'image' for b in message.get('content', []) if isinstance(b, dict)):
                 reasons.add(INCONSISTENT_LOG)
         elif role == 'assistant':
-            assistant_count += 1
             usage(message.get('usage'), required=True, errored=message.get('stopReason') in ('error', 'aborted'))
             actual_model = f"{message.get('provider', '')}/{message.get('model', '')}"
             models.add(actual_model)
-            actual_level = message.get('thinkingLevel', level)
+            actual_level = message.get('thinkingLevel')
             if isinstance(actual_level, str):
                 levels.add(actual_level)
-            else:
-                reasons.add(THINKING_LEVEL_MISMATCH)
             content = message.get('content', [])
             if isinstance(content, list):
                 metrics['tool_calls'] += sum(b.get('type') == 'toolCall' for b in content)
@@ -86,17 +74,18 @@ def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]
             sections = message.get('sections', {})
             if isinstance(sections, dict) and any(sections.get(k) for k in ('skills', 'contextFiles', 'agents', 'rules')):
                 reasons.add(CUSTOM_SETUP)
-        if kind in ('usage', 'compaction', 'branch_summary'):
+        if kind in ('compaction', 'branch_summary'):
+            usage(entry.get('usage'), required=True, summary=True)
+        elif kind == 'usage':
             usage(entry.get('usage'), required=True)
             if entry.get('model'):
                 models.add(f"{entry.get('provider', '')}/{entry['model']}")
-        if isinstance(eid, str):
-            states[eid] = (model, level)
-    if not assistant_count:
-        reasons.add(MISSING_USAGE)
-    if not models or models != {agreed.get('model')}:
+    if agreed.get('model') == 'any':
+        if len(models) > 1:
+            reasons.add(MODEL_SWITCHED)
+    elif models != {agreed.get('model')}:
         reasons.add(MODEL_MISMATCH)
-    if not levels or levels != {agreed.get('thinking_level')}:
+    if agreed.get('thinking_level') != 'any' and levels != {agreed.get('thinking_level')}:
         reasons.add(THINKING_LEVEL_MISMATCH)
     if header['cwd'] in prior_folders:
         reasons.add(FOLDER_REUSED)

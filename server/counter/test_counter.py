@@ -83,14 +83,101 @@ class CounterTests(unittest.TestCase):
         messages[-1]['toolCallId'] = 'unrelated'
         self.assertFalse(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
 
-    def test_thinking_level_inherited_from_initial_event(self):
+    def test_thinking_level_change_is_not_reply_evidence(self):
         entries = [json.loads(line) for line in log(assistant()).splitlines()]
         entries[1]['message'].pop('thinkingLevel')
         entries.insert(1, {'type': 'thinking_level_change', 'id': 'level', 'parentId': None,
                           'thinkingLevel': 'low', 'timestamp': '2026-10-10T10:00:00Z'})
         entries[2]['parentId'] = 'level'
         result = score('\n'.join(map(json.dumps, entries)), 'x', AGREED, set())
+        self.assertIn('thinking_level_mismatch', result['reasons'])
+        self.assertEqual(result['metrics']['thinking_levels'], [])
+
+    def test_any_setup_and_actual_model_switch(self):
+        from . import UNRANKING_REASONS
+        config = {'model': 'any', 'thinking_level': 'any'}
+        first = assistant()
+        second = dict(assistant(), model='other', thinkingLevel='high')
+        result = score(log(first, second), 'x', config, set())
+        self.assertIn('model_switched', result['reasons'])
+        self.assertIn('model_switched', UNRANKING_REASONS)
+        self.assertNotIn('model_mismatch', result['reasons'])
         self.assertNotIn('thinking_level_mismatch', result['reasons'])
+        result = score(log(first, dict(assistant(), thinkingLevel='high')), 'x', config, set())
+        self.assertNotIn('model_switched', result['reasons'])
+        self.assertEqual(result['metrics']['thinking_levels'], ['high', 'low'])
+
+    def test_initial_selection_events_ignored(self):
+        entries = [json.loads(line) for line in log(assistant()).splitlines()]
+        entries.insert(1, {'type': 'model_change', 'id': 'select', 'parentId': None,
+                          'provider': 'other', 'modelId': 'unused', 'timestamp': '2026-10-10T10:00:00Z'})
+        entries.insert(2, {'type': 'thinking_level_change', 'id': 'level', 'parentId': 'select',
+                          'thinkingLevel': 'off', 'timestamp': '2026-10-10T10:00:00Z'})
+        entries[3]['parentId'] = 'level'
+        result = score('\n'.join(map(json.dumps, entries)), 'x', AGREED, set())
+        self.assertEqual(result['metrics']['models'], ['openai/test'])
+        self.assertEqual(result['metrics']['thinking_levels'], ['low'])
+        self.assertEqual(result['reasons'], ['not_solved'])
+
+    def test_missing_thinking_level_allowed_when_any(self):
+        message = assistant()
+        message.pop('thinkingLevel')
+        result = score(log(message), 'x', dict(AGREED, thinking_level='any'), set())
+        self.assertNotIn('thinking_level_mismatch', result['reasons'])
+
+    def test_optional_summary_usage(self):
+        for kind in ('compaction', 'branch_summary'):
+            for value in (None, {}, {'totalTokens': None}, {'totalTokens': 0}, {'totalTokens': 5}):
+                with self.subTest(kind=kind, value=value):
+                    entries = [json.loads(line) for line in log(assistant(12)).splitlines()]
+                    entry = {'type': kind, 'id': 'summary', 'parentId': '0',
+                             'timestamp': '2026-10-10T10:00:00Z', 'model': 'not-a-reply', 'provider': 'other'}
+                    if value is not None:
+                        entry['usage'] = value
+                    entries.append(entry)
+                    result = score('\n'.join(map(json.dumps, entries)), 'x', AGREED, set())
+                    recorded = (value or {}).get('totalTokens')
+                    self.assertEqual(result['metrics']['total_tokens'], 12 + (recorded or 0))
+                    self.assertNotIn('missing_usage', result['reasons'])
+                    self.assertEqual('usage_not_recorded' in result['reasons'], (value or {}).get('totalTokens') is None)
+                    self.assertEqual(result['metrics']['models'], ['openai/test'])
+
+    def test_usage_entries_include_answering_model(self):
+        entries = [json.loads(line) for line in log(assistant()).splitlines()]
+        entries.append({'type': 'usage', 'id': 'warm', 'parentId': '0',
+                        'timestamp': '2026-10-10T10:00:00Z', 'model': 'other',
+                        'provider': 'openai', 'usage': {'totalTokens': 7}})
+        result = score('\n'.join(map(json.dumps, entries)), 'x', {'model': 'any', 'thinking_level': 'any'}, set())
+        self.assertEqual(result['metrics']['total_tokens'], 17)
+        self.assertEqual(result['metrics']['models'], ['openai/other', 'openai/test'])
+        self.assertIn('model_switched', result['reasons'])
+
+    def test_fork_usage_stays_unknown(self):
+        entries = [json.loads(line) for line in log(assistant()).splitlines()]
+        entries[0]['parentSession'] = '/not-loaded.jsonl'
+        result = score('\n'.join(map(json.dumps, entries)), 'x', AGREED, set())
+        self.assertIsNone(result['metrics']['total_tokens'])
+        self.assertIn('missing_usage', result['reasons'])
+
+    def test_reason_sets_match_final_contract(self):
+        from . import UNRANKING_REASONS, WARNING_REASONS
+        self.assertEqual(UNRANKING_REASONS, {
+            'not_solved', 'model_mismatch', 'thinking_level_mismatch',
+            'model_switched', 'folder_reused', 'missing_usage'})
+        self.assertEqual(WARNING_REASONS, {
+            'custom_setup', 'inconsistent_log', 'usage_not_recorded'})
+
+    def test_real_zip_has_only_model_that_answered(self):
+        from pathlib import Path
+        from . import UNRANKING_REASONS
+        text = (Path(__file__).resolve().parents[2] / 'samples' / 'real-zip-redacted.jsonl').read_text()
+        for agreed in ({'model': 'openai/gpt-6.1-sol', 'thinking_level': 'low'},
+                       {'model': 'any', 'thinking_level': 'any'}):
+            result = score(text, 'brute_force_zip', agreed, set())
+            self.assertEqual(result['metrics']['models'], ['openai/gpt-6.1-sol'])
+            self.assertEqual(result['metrics']['thinking_levels'], ['low'])
+            self.assertFalse(set(result['reasons']) & UNRANKING_REASONS)
+            self.assertEqual(result['reasons'], ['usage_not_recorded'])
 
     def test_redacted_real_uploads(self):
         from pathlib import Path

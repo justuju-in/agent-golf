@@ -28,8 +28,19 @@ may differ from the originals; these files cannot reproduce the full solve.
 | [real-zip-redacted.jsonl](./real-zip-redacted.jsonl) | 202053 | 10 | 599 | 15 | yes |
 | [real-second-redacted.jsonl](./real-second-redacted.jsonl) | 79221 | 2 | 41 | 9 | no evidence |
 
-The ZIP fixture has `usage_not_recorded` (errored zero-usage reply). Both may be
-unranked for setup mismatch depending on the configured agreed model/level.
+The ZIP fixture has `usage_not_recorded` (errored zero-usage reply). With model
+`openai/gpt-6.1-sol` / level `low`, or `any` / `any`, it ranks with that warning.
+Its reported model is only `openai/gpt-6.1-sol`, and thinking level only `low`;
+unused initial selection events do not count. The second fixture has no success
+evidence and stays unranked (`not_solved`), including with `any` / `any`.
 Observed correct response: `{"result":"passed"}`; assistant tool block: `toolCall`.
 A real wrong-answer response is still unavailable. Totals are independently summed
 from recorded usage, not manually audited across every entry.
+
+## Remaining real evidence
+
+The ZIP fixture supplies both an actual pass and a write-and-run-script example.
+The second fixture supplies an upload without success evidence, not a genuine
+Hackattic wrong-answer attempt. No real wrong-answer response is available in the
+two local source logs. Anup's promised solved log has not been supplied here yet.
+Do not relabel synthetic outputs as real accepted/failed Hackattic responses.

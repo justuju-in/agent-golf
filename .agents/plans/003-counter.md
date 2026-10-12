@@ -3,7 +3,7 @@ name: 003-counter
 description: Pi log reader and general counter in server/counter/ — tokens, prompts, characters, tool calls, model check, solved check.
 status: started
 created: 2026-10-10
-updated: 2026-10-10
+updated: 2026-10-12
 ---
 
 # Counter
@@ -103,3 +103,28 @@ events ──score──▶ {metrics, reasons}
 - bash tools/check.sh: PASS, 13 tests. git diff --check: PASS.
 - Fetched origin/main still has old reason/answer spec; shared-spec edits left to the teammate responsible. Website must handle missing_usage (unrank) and usage_not_recorded (warning).
 - Previous checkpoint statements about errored-zero totals and pending real samples are superseded above. Three dedicated Step 0 fixtures and broader consistency validation remain open.
+
+## Local review work — 2026-10-12 (awaiting user approval)
+
+- Final spec read from fetched origin/main c1b61da. No staging, commit, push or branch merge performed.
+- Implemented any setup, model_switched, actual replying models/levels only, and missing summary usage warning.
+- bash tools/check.sh: 21 tests PASS. git diff --check PASS. Reason sets match main. Both real samples pass website pure result validator (not HTTP end-to-end).
+- Real ZIP sample ranks with usage_not_recorded under exact setup or any/any. Existing samples cover pass/script and no-success upload. Real wrong-answer log and Anup additional solved log remain unavailable.
+- Main merge requires later approval; local diff awaits user review. Shared HANDOFF untouched.
+
+## Local main integration — 2026-10-12
+
+- User authorized integrating latest main locally and testing, without commit or push.
+- origin/main c1b61da merged with --no-commit --no-ff; no conflicts. Merge remains pending user approval.
+- Pre-merge local edits verified byte-for-byte against saved diff.
+- bash tools/check.sh: PASS, 21 tests; staged and unstaged diff whitespace checks PASS.
+- Main currently contributes spec/plan changes only; website and plugin implementations remain on their feature branches, so no combined HTTP/plugin test is claimed.
+- No commit or push performed. Next: user review and explicit commit/merge/push authorization.
+
+## Approved delivery — 2026-10-12
+
+- User explicitly approved committing latest changes and pushing to counter only.
+- Final gate: bash tools/check.sh PASS (21 tests); both diff whitespace checks PASS.
+- Commit includes pending origin/main c1b61da integration and reviewed counter changes.
+- Next: Anup tests real website uploads and merges counter into main when integration passes. No deployment or main push authorized here.
+- Remaining evidence gap: genuine wrong-answer fixture and Anup additional solved log not supplied.
