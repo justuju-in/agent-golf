@@ -44,7 +44,7 @@ Unknown entries are retained and ignored unless they carry a recognized usage ty
 Missing compaction/branch-summary usage contributes zero with `usage_not_recorded`,
 without preventing ranking. Forked sessions still have unknown usage (`missing_usage`).
 
-Validation: `bash tools/check.sh`; synthetic cases and two heavily redacted real
+Validation: `bash tools/check.sh`; synthetic cases and three heavily redacted real
 upload fixtures in [samples](../../samples/README.md). No credentials committed.
 Real solved ZIP session: 202053 tokens, 10 prompts, 599 characters, 15 tool calls,
 with `usage_not_recorded` warning. It ranks for model `openai/gpt-6.1-sol` and

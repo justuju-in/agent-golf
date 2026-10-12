@@ -128,3 +128,20 @@ events ──score──▶ {metrics, reasons}
 - Commit includes pending origin/main c1b61da integration and reviewed counter changes.
 - Next: Anup tests real website uploads and merges counter into main when integration passes. No deployment or main push authorized here.
 - Remaining evidence gap: genuine wrong-answer fixture and Anup additional solved log not supplied.
+
+## Wrong-answer fixture — local work, 2026-10-12
+
+- User authorized local fixture/test/documentation work only; no staging, commit or push.
+- Added samples/real-wrong-answer-redacted.jsonl from a real help_me_unpack rejection. Private source is unchanged.
+- Preserved actual HTTP 200 and rejected response, usage, roles and links; masked prompts, reasoning, command, input, system text and private metadata.
+- Compared original and redacted scores: identical metrics/reasons (7604 tokens = 3697 + 3907, 1 prompt, 736 chars, 1 tool; custom_setup and not_solved).
+- Added regression test; bash tools/check.sh PASS, 22 tests; git diff --check PASS. Scoring implementation unchanged.
+- Samples README now lists all three real files with expected verdicts. Genuine wrong-answer evidence gap is resolved; Anup's additional solved log is still not supplied.
+- Next: user review of local changes and explicit approval before commit/push.
+
+## Wrong-answer fixture delivery — 2026-10-12
+
+- User explicitly approved commit and push to counter.
+- Gate rerun: bash tools/check.sh PASS (22 tests); git diff --check PASS.
+- Deliver fixture, regression test and documentation; scoring logic unchanged.
+- Next: Anup can test uploads and merge counter into main.

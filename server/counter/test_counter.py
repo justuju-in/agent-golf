@@ -179,6 +179,22 @@ class CounterTests(unittest.TestCase):
             self.assertFalse(set(result['reasons']) & UNRANKING_REASONS)
             self.assertEqual(result['reasons'], ['usage_not_recorded'])
 
+    def test_real_wrong_answer_is_unranked(self):
+        from pathlib import Path
+        from . import UNRANKING_REASONS
+        text = (Path(__file__).resolve().parents[2] / 'samples' / 'real-wrong-answer-redacted.jsonl').read_text()
+        from .pi_reader import text_content
+        entries = [json.loads(line) for line in text.splitlines()]
+        output = '\n'.join(text_content(e['message']) for e in entries if e.get('message', {}).get('role') == 'toolResult')
+        self.assertIn('Submit HTTP status: 200', output)
+        self.assertIn('"rejected": "invalid short decoded, expected -22704 but got 0"', output)
+        result = score(text, 'help_me_unpack', {'model': 'any', 'thinking_level': 'any'}, set())
+        self.assertEqual(result['metrics'], {
+            'total_tokens': 7604, 'prompts': 1, 'chars_typed': 736, 'tool_calls': 1,
+            'models': ['openai/gpt-5.5'], 'thinking_levels': ['medium'], 'solved': False})
+        self.assertEqual(set(result['reasons']) & UNRANKING_REASONS, {'not_solved'})
+        self.assertEqual(result['reasons'], ['custom_setup', 'not_solved'])
+
     def test_redacted_real_uploads(self):
         from pathlib import Path
         samples = Path(__file__).resolve().parents[2] / 'samples'
