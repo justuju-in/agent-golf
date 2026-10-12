@@ -186,19 +186,29 @@ def submit(
         raise Rejected("not_pi_log") from None
 
     sha256 = hashlib.sha256(data).hexdigest()
-    # The same file for the same problem again: the stored entry, not scored again. (For
-    # another problem it is scored, and replaces the session's row like any resubmission.)
-    same_file = conn.execute(
-        "SELECT * FROM submissions WHERE user_id = ? AND problem = ? AND sha256 = ?",
-        (user_id, problem.slug, sha256),
-    ).fetchone()
-    if same_file is not None:
-        return reply(same_file, settings.api_base_url)
 
     # Once to learn the session and its folder, then with the user's earlier folders.
     session_id = run_counter(text, problem, set())["session_id"]
     result = run_counter(text, problem, prior_folders(conn, user_id, session_id))
     status = "unranked" if UNRANKING_REASONS.intersection(result["reasons"]) else "ranked"
+
+    # The same file for the same problem again: scored like any upload, so resubmitting an
+    # unchanged session picks up counter fixes, but only its verdict changes. Its upload
+    # times, link, folder_was_empty and stored file stay. (For another problem it replaces
+    # the session's row like any resubmission.)
+    same_file = conn.execute(
+        "SELECT id FROM submissions WHERE user_id = ? AND problem = ? AND sha256 = ?",
+        (user_id, problem.slug, sha256),
+    ).fetchone()
+    if same_file is not None:
+        with conn:
+            conn.execute(
+                "UPDATE submissions SET status = ?, reasons = ?, metrics = ? WHERE id = ?",
+                (status, json.dumps(result["reasons"]), json.dumps(result["metrics"]), same_file["id"]),
+            )
+            row = conn.execute("SELECT * FROM submissions WHERE id = ?", (same_file["id"],)).fetchone()
+        return reply(row, settings.api_base_url)
+
     now = utc_now()
     with conn:
         conn.execute(
