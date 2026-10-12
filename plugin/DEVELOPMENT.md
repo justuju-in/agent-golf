@@ -6,7 +6,7 @@ Pi extension adding `/golf-login`, `/golf-submit` and `/golf-problems`. It only 
 
 ## Development
 
-From the repo root, load the extension with the confirmed default API origin, `https://agent-golf.justuju.in`:
+From the repo root, load the extension with the confirmed default API origin, `https://agent-golf.csbasics.in`:
 
 ```bash
 pi --extension ./plugin/index.ts
@@ -69,7 +69,7 @@ After publication, verify the real registry installation with the same isolated 
 ```bash
 AGENT_GOLF_WEBSITE_DIR="$(realpath ../agent-golf-website-test)" \
 AGENT_GOLF_E2E_WEBSITE_DIR="$(realpath ../agent-golf-website-test)" \
-AGENT_GOLF_E2E_PACKAGE_SOURCE=npm:agent-golf@0.1.0 \
+AGENT_GOLF_E2E_PACKAGE_SOURCE=npm:agent-golf@0.1.1 \
 bash tools/check.sh
 ```
 

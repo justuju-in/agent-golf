@@ -1,4 +1,4 @@
-export const DEFAULT_API_ORIGIN = "https://agent-golf.justuju.in";
+export const DEFAULT_API_ORIGIN = "https://agent-golf.csbasics.in";
 
 export function getApiOrigin(baseUrl: string | undefined): string {
   if (!baseUrl?.trim()) throw new Error("missing-origin");

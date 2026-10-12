@@ -2,7 +2,15 @@
 
 Maintainer instructions for the private source repository. This file and DEVELOPMENT.md are excluded from the public npm artifact. The student README is the published usage guide.
 
-## Current release handoff (2026-10-11)
+## Current release preparation (2026-10-12)
+
+- User approved `0.1.1`, keeping read-only browser views, switching the default/homepage to `https://agent-golf.csbasics.in`, publishing to `latest` and moving `preview` to the same version. Rebase remains parked; prepare from original feature/plan-004.
+- Production catalogue at the new hostname returns HTTP 200. Website 85718a5 activates the real counter; its unmodified local source passed 127 backend tests, published 0.1.0 passed 101 plugin integration tests and 11 scoring replays. Fresh solved production submission remains unverified: this URL/channel release is approved, not a claim of complete competition readiness.
+- Backend deployment must also set `AGENT_GOLF_API_BASE_URL=https://agent-golf.csbasics.in`, since upload replies contain absolute submission URLs. Plugin overrides remain explicit and credentials never migrate between origins; users update/reload and log in again.
+- Publication is currently blocked by npm `whoami` E401. Operator must authenticate with `npm login`; do not publish/retry until identity/permission is verified, and do not share tokens or weaken MFA.
+- After publishing the reviewed 0.1.1 tarball to latest, explicitly update preview with `npm dist-tag add agent-golf@0.1.1 preview --registry=https://registry.npmjs.org/`. Verify exact/tagged installs and an actual 0.1.0-to-0.1.1 update; do not overwrite or unpublish 0.1.0.
+
+## Previous release snapshot (2026-10-11)
 
 - `agent-golf@0.1.0` is already published. Its downloaded integrity matches the reviewed artifact; do not publish that version again.
 - Fresh Pi registry installs through both `npm:agent-golf@preview` and `npm:agent-golf@0.1.0` passed the local website integration gate (92/92). Install/update/removal also passed in isolated settings; no later-version upgrade was tested because no later release exists.
@@ -75,20 +83,20 @@ tar -tzf "$TARBALL"
 Inspect the output, record the release commit and choose the explicitly approved channel. Publish the exact inspected tarball, not another working copy:
 
 ```bash
-# Stable, only after live readiness is verified:
+# Explicitly approved latest release; a tag alone is not scoring verification:
 npm publish "$TARBALL" --access public --tag latest --registry=https://registry.npmjs.org/
 
 # OR approved preview; do not run both commands:
 npm publish "$TARBALL" --access public --tag preview --registry=https://registry.npmjs.org/
 ```
 
-Complete npm's authentication prompt yourself. Do not paste its credentials into agent tools. If npm returns E403 requiring two-factor authentication or an authorized bypass token, stop: confirm/enable publishing 2FA and refresh login in your own terminal before retrying. Do not automatically create tokens or weaken authentication settings. Check registry state first so an uncertain result cannot cause an accidental duplicate release. A preview is publicly downloadable; its tag is not access control. Testers explicitly install `npm:agent-golf@preview`. A preview can use version 0.1.0; if unchanged code later passes live verification, its tag can be promoted without republishing.
+Complete npm's authentication prompt yourself. Do not paste its credentials into agent tools. If npm returns E401 (expired/invalid login) or E403 requiring two-factor authentication or an authorized bypass token, stop: confirm/enable publishing 2FA and refresh login in your own terminal before retrying. Do not automatically create tokens or weaken authentication settings. Check registry state first so an uncertain result cannot cause an accidental duplicate release. A preview is publicly downloadable; its tag is not access control. Testers explicitly install `npm:agent-golf@preview`. A preview can use version 0.1.0; if unchanged code later passes live verification, its tag can be promoted without republishing.
 
 ## Verify after publication
 
 ```bash
 npm view agent-golf versions dist-tags --json --registry=https://registry.npmjs.org/
-pi install npm:agent-golf@0.1.0   # Replace with the just-published version.
+pi install npm:agent-golf@0.1.1   # Replace with the just-published version.
 ```
 
 Use an isolated Pi home/config for verification, not a student's installation. Check all three commands, public browser requests, real login and an approved disposable submission; record the result in the owner plan. Separately verify the intended unpinned/tagged student install command and `pi update --extensions`. Restart Pi or `/reload` after updates. Exact-version installations remain pinned and do not advance to newer versions.

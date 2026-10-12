@@ -2,17 +2,17 @@
 
 Pi commands for the Agent Golf coding-agent leaderboard. Login, browsing and submission never call a model or compute scores locally.
 
-**Initial release: preview (0.1.0).** Installation, UI, transport and privacy are verified. At initial publication, production API availability and real counter integration were not verified; local website tests used stand-in scores. This is for integration testing, not competition scoring until your organizer confirms a deployed, verified real counter.
+**0.1.1:** uses https://agent-golf.csbasics.in and includes read-only interactive problem views. Local integration with the real counter is verified and the production catalogue is reachable. A fresh solved production submission has not been verified; follow your organizer's readiness announcement before competition use.
 
 ## Install and update
 
 Requires Node.js 22.19+ and the Pi coding agent (tested with Pi 1.1.0).
 
 ```bash
-pi install npm:agent-golf@preview
+pi install npm:agent-golf
 ```
 
-Use an organizer-provided trusted test server via the override below until production is ready. Once the team announces a stable release, install `npm:agent-golf` to follow `latest` instead.
+Unversioned installations follow `latest`. The `preview` channel also receives this URL update; existing preview users can keep that installation source.
 
 Start a new Pi process, or run `/reload` in an existing one. To update an unpinned installation:
 
@@ -20,7 +20,9 @@ Start a new Pi process, or run `/reload` in an existing one. To update an unpinn
 pi update --extensions
 ```
 
-Restart Pi or `/reload` afterward. An exact version such as `npm:agent-golf@0.1.0` is pinned; updating does not advance it to a different version. The `npm:agent-golf@preview` installation follows the preview channel; it does not automatically switch to `latest`.
+Restart Pi or `/reload` afterward. An exact version such as `npm:agent-golf@0.1.0` is pinned; updating does not advance it to a different version. Remove the old pinned source (`pi remove npm:agent-golf@0.1.0`), then install `npm:agent-golf@0.1.1` explicitly to replace that pin. The `npm:agent-golf@preview` installation follows the preview channel; it does not automatically switch to `latest`.
+
+**Updating from 0.1.0:** the default server origin changed. Unset any old `AGENT_GOLF_API_BASE_URL` override, update/restart Pi, and run `/golf-login` with your student key valid on the new website. Old-origin credentials are preserved but never migrated or sent to the new origin.
 
 ## Commands
 
@@ -56,7 +58,7 @@ The server owns scores and status. A null total with `missing_usage` is displaye
 
 ## Server configuration
 
-Default API origin: **https://agent-golf.justuju.in**.
+Default API origin: **https://agent-golf.csbasics.in**.
 
 For a trusted local server:
 
@@ -75,7 +77,7 @@ Both authentication and browsing/submission use this origin. Only HTTPS and loop
 - **No persisted session file:** submit from the saved attempt, not a fresh custom-only session that has not flushed to disk.
 - **Upload/network error:** the upload may already have reached the server. Check the website before retrying. The plugin never retries automatically.
 
-Removing the preview with `pi remove npm:agent-golf@preview` (use the source you installed) does not remove your credential file. Delete that file separately only if you intend to discard saved logins.
+Removing the package with `pi remove npm:agent-golf` (use the source you installed, e.g. `npm:agent-golf@preview`) does not remove your credential file. Delete that file separately only if you intend to discard saved logins.
 
 ## License
 

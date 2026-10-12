@@ -42,7 +42,7 @@ function reply(url) {
 }
 
 test("confirmed production origin is the default; explicit override wins over environment", () => {
-  assert.equal(DEFAULT_API_ORIGIN, "https://agent-golf.justuju.in");
+  assert.equal(DEFAULT_API_ORIGIN, "https://agent-golf.csbasics.in");
   assert.equal(resolveApiOrigin(undefined, {}), DEFAULT_API_ORIGIN);
   assert.equal(resolveApiOrigin(undefined, { AGENT_GOLF_API_BASE_URL: "http://localhost:8000" }), "http://localhost:8000");
   assert.equal(resolveApiOrigin("https://EXAMPLE.com:443/", { AGENT_GOLF_API_BASE_URL: "http://localhost:8000" }), "https://example.com");

@@ -29,6 +29,7 @@ test("npm artifact contains only public runtime files and installs independently
     assert.equal(manifest.name, "agent-golf");
     assert.match(manifest.version, /^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.-]+)?$/);
     assert.equal(manifest.version, packed.version);
+    assert.equal(manifest.homepage, "https://agent-golf.csbasics.in");
     assert.equal(manifest.license, "MIT");
     assert.equal(manifest.engines.node, ">=22.19.0");
     assert.deepEqual(manifest.pi, { extensions: ["./index.ts"], skills: [], prompts: [], themes: [] });
