@@ -3,7 +3,7 @@ name: 002-website
 description: Registration, key check, upload and problem-list API, leaderboard pages, Docker and deployment in server/ (never server/counter/).
 status: started
 created: 2026-10-10
-updated: 2026-10-11
+updated: 2026-10-12
 ---
 
 # Website
@@ -33,7 +33,7 @@ updated: 2026-10-11
   - [x] 5.4 Deploy with HTTPS at agent-golf.csbasics.in (Cloudflare Tunnel, port 8077); confirm a 19 MB upload reaches the app
   - [x] 5.5 Keys and uploads never appear in server or tunnel logs
 - [ ] **Phase 6 — Verification and handoff**
-  - [ ] 6.1 Upload each file in `samples/` to the live site with a test key; rows appear correctly
+  - [x] 6.1 ~~Upload each file in `samples/` to the live site with a test key; rows appear correctly~~ Skipped: replaced by the first real student submissions, so no sample rows go on the live board (Anup, 2026-10-12)
   - [ ] 6.2 Tell Prateek the live site is up, so the plugin's default `AGENT_GOLF_API_BASE_URL` works
   - [ ] 6.3 Gate passes; tick this plan and add to its Changelog
 
@@ -181,6 +181,7 @@ Students can register, upload, and see the board. Done when a solved real sessio
 | Pages: board, register, key page, submission, rules | Smallest set for tonight; admin work uses the SQLite command line | Player page; admin page |
 | Home page = first listed problem's board, with links to the others | One obvious board for the projector; more problems need no new page | A problem index page |
 | Live behind a Cloudflare Tunnel to `127.0.0.1:8077`, at `agent-golf.csbasics.in`; no proxy or open ports on the server | The server is shared (its own nginx holds 80/443, another app holds 8000); Cloudflare gives HTTPS, keeps the server's address private and passes uploads up to 100 MB | An nginx proxy and open ports on the server; `agent-golf.justuju.in` |
+| No sample uploads on the live board (6.1); the first real submissions show the rows instead | Students start on 2026-10-12, so sample rows would be fake entries on the projector board; the samples already pass locally (4.1) | Uploading the samples live and deleting them afterwards |
 | `brute_force_zip` open from Monday with `"any"`/`"any"`, listed after `help_me_unpack` | Anup's decision; two of the three samples are ZIP sessions, and the counter scores them as `samples/README.md` says; the home page stays on `help_me_unpack` | Keeping it closed (uploads got `400 unknown_problem`) |
 | Board: model column only when the problem's model is `"any"`; unranked shows each player's latest attempt, only if they have no ranked row | Matches the spec; with one fixed model the column would repeat the same value on every row; keeps the projector board short | Model column always; never a model column; every unranked attempt |
 | Submission page always shows the model and thinking level | Each attempt's setup is visible even when the board hides it | Board only |
@@ -222,3 +223,4 @@ Students can register, upload, and see the board. Done when a solved real sessio
 - 2026-10-12 — Redeployed `5e2b2b8` (rules page). Live `/rules` shows the install and start steps, `/api/v1/problems` lists both problems with `rules_version` `mvp-2`, and the user count was unchanged by the redeploy. Then, as Anup asked, deleted the test user `test_anup`, its one submission and its stored log, and nothing else. Both boards show "No submissions yet", and plain HTTP now gets a 301 to HTTPS.
 - 2026-10-12 — 5.3 done: `feature/plan-002` merged into `main` (`--no-ff`) with `.agents/HANDOFF.md` rewritten in that merge commit, without the server's address. Gate on the merged tree: `Ran 132 tests … OK`, `gate: ok`. `feature/plan-002` was then moved to the same commit.
 - 2026-10-12 — 5.5 done: no test key, `access_token` or upload content in the app's or the tunnel connector's log after a live login, a URL-key request and a marker upload. The connector logs failed requests' URLs during a redeploy only. The test user was deleted, and the live data is empty again.
+- 2026-10-12 — 5.5 approved by Anup. 6.1 skipped: it is replaced by the first real student submissions, so no sample rows go on the live board. The samples already give their `samples/README.md` verdicts locally (4.1). Still open: 4.2 (Anup sends a solved real session after his solve test), 6.2 and 6.3. Nothing more on the server for now.
