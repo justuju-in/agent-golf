@@ -119,6 +119,14 @@ class CounterTests(unittest.TestCase):
                         {'role': 'toolResult', 'toolCallId': 'run', 'content': '{"result":"passed"}'}]
             self.assertFalse(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
 
+    def test_url_built_from_base_and_path(self):
+        command = ("python3 - <<'PY'\nbase = 'https://hackattic.com'\n"
+                   "post_url = f\"{base}/challenges/help_me_unpack/solve?access_token={token}&playground=1\"\nPY")
+        messages = [assistant(content=[{'type': 'toolCall', 'name': 'bash', 'id': 'run', 'arguments': {'command': command}}]),
+                    {'role': 'toolResult', 'toolCallId': 'run', 'content': [{'type': 'text', 'text': '{"result": "passed (playground mode)"}'}]}]
+        self.assertTrue(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
+        self.assertFalse(score(log(*messages), 'brute_force_zip', AGREED, set())['metrics']['solved'])
+
     def test_playground_pass_is_solved(self):
         messages = [assistant(content=[{'type': 'toolCall', 'name': 'bash', 'id': 'run',
                     'arguments': {'command': 'curl "https://hackattic.com/challenges/help_me_unpack/solve?access_token=$T&playground=1"'}}]),
