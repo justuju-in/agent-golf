@@ -14,6 +14,11 @@ COMMANDS = [
     # The page's own origin (PageTestCase's api_base_url), as the plugin needs it.
     "AGENT_GOLF_API_BASE_URL=https://golf.example pi --no-extensions -e ~/.pi/agent/npm/node_modules/agent-golf"
     " --no-skills --no-context-files --no-mcp --no-prompt-templates",
+    # The GitHub Copilot option: one more extension, nothing else changes.
+    "pi install npm:pi-github-copilot-auto@0.3.0",
+    "AGENT_GOLF_API_BASE_URL=https://golf.example pi --no-extensions -e ~/.pi/agent/npm/node_modules/agent-golf"
+    " -e ~/.pi/agent/npm/node_modules/pi-github-copilot-auto"
+    " --no-skills --no-context-files --no-mcp --no-prompt-templates",
 ]
 IN_PI = (
     "In Pi: /golf-login <your key> (once), pick your model with /model before your first prompt,"
