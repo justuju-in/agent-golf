@@ -145,3 +145,16 @@ events ──score──▶ {metrics, reasons}
 - Gate rerun: bash tools/check.sh PASS (22 tests); git diff --check PASS.
 - Deliver fixture, regression test and documentation; scoring logic unchanged.
 - Next: Anup can test uploads and merge counter into main.
+
+## Success detection local fix — 2026-10-12
+
+- Session-wide endpoint evidence plus any passed tool result, including error results. No path/call-link reconstruction.
+- Added heredoc/later execution, cd/script and passed-then-error regressions, plus wrong/prefix-slug and missing-evidence negatives. Script-built URLs still supported.
+- bash tools/check.sh PASS, 27 tests; git diff --check PASS.
+- Local only; commit/push awaits explicit user approval.
+
+## Success fix delivery — 2026-10-12
+
+- User explicitly approved commit and push to counter; requested diff for review.
+- Final gate: bash tools/check.sh PASS, 27 tests; git diff --check PASS.
+- Deliver session-wide success evidence fix and regressions; main remains untouched.

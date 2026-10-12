@@ -2,11 +2,11 @@
 
 <!-- Overwrite, don't append. Keep under 60 lines. History lives in plans and git. -->
 
-Updated: 2026-10-12 12:05 IST (Claude, merging `counter` into `main` for Anup)
+Updated: 2026-10-12 14:45 IST (Claude, merging `counter` `311ea1d` into `main` for Anup)
 
 ## Active work
-- `main` now has the real counter (`server/counter/`, Amit, plan 003, up to `fac0674`) and the redacted samples.
-- Website: `feature/plan-002` (Anup/Kiro) is done through 5.2 with the terminal look; it still imports the stand-in. Next: 4.1 (merge `main`, import `server.counter`, delete the stand-in).
+- `main` now has the real counter (`server/counter/`, Amit, plan 003, up to `311ea1d`) and the redacted samples.
+- Website: `feature/plan-002` (Anup/Kiro) uses the real counter (4.1 done), has `help_me_unpack` and `brute_force_zip` open, and runs on the Justuju server (104.225.219.86, container on 127.0.0.1:8077) behind a Cloudflare Tunnel being set up; the public domain is moving from justuju.in to csbasics.in.
 - Plugin: `feature/plan-004` (Prateek); `agent-golf@0.1.0` is published on npm (`pi install npm:agent-golf@preview`). Left: 3.1 live end-to-end, 3.2.
 - Running: nothing.
 
@@ -19,6 +19,8 @@ Updated: 2026-10-12 12:05 IST (Claude, merging `counter` into `main` for Anup)
 ## Decisions
 - `help_me_unpack` stays model `"any"`, thinking level `"any"` for the first week (plan 001 on `feature/plan-002`).
 - MVP is Pi-only; Hackattic's reply in the log is the only evidence; anti-cheat is version 2.
+
+- `311ea1d` solved check: heredoc-written scripts, `cd` before running, and a `passed` reply followed by an error now count as solved; a pre-existing script never written in the session, a `passed` for another challenge, and a rejected answer do not (checked with constructed sessions).
 
 ## Blockers / open questions
 - No real *solved* session sample yet: the samples' Hackattic commands are redacted, so the solved path is tested only with constructed logs. Anup to supply one.
