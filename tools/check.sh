@@ -14,10 +14,16 @@ if compgen -G "server/**/test_*.py" >/dev/null || compgen -G "server/test_*.py" 
   ran=1
 fi
 
-# Plugin tests, once plugin/package.json defines "test".
+# Plugin tests, once plugin/package.json defines "test". Many of them drive a real Pi, so
+# without pi on PATH the suite is skipped rather than failed: the gate passes on any machine.
+# (Its interactive TUI smoke tests also need AGENT_GOLF_TUI_TESTS=1; see plugin/RELEASING.md.)
 if [[ -f plugin/package.json ]] && grep -q '"test"' plugin/package.json; then
-  (cd plugin && npm test --silent)
-  ran=1
+  if command -v pi >/dev/null 2>&1; then
+    (cd plugin && npm test --silent)
+    ran=1
+  else
+    echo "gate: plugin tests skipped: pi not installed"
+  fi
 fi
 
 # Samples must never contain a real Hackattic access token.
