@@ -23,10 +23,10 @@ updated: 2026-10-12
   - [x] 3.1 Board per problem: ranked rows, then unranked players; 30-second refresh; projector-size text
   - [x] 3.2 Submission page: username, model, numbers, solved, reasons; never prompts, folders or raw log
   - [x] 3.3 Rules page: the seven rules, each problem's instructions and setup, scoring, install and submit steps
-- [ ] **Phase 4 — Real counter** (after Amit merges `counter` to `main`)
+- [x] **Phase 4 — Real counter** (after Amit merges `counter` to `main`)
   - [x] 4.1 Bring `main` into this branch; import from `server.counter`; delete the stand-in; the three `samples/*.jsonl` give the verdicts in `samples/README.md`
-  - [ ] 4.2 Upload Anup's solved real session with a test key; it shows a ranked row
-- [ ] **Phase 5 — Docker and deployment at agent-golf.csbasics.in**
+  - [x] 4.2 Upload Anup's solved real session with a test key; it shows a ranked row
+- [x] **Phase 5 — Docker and deployment at agent-golf.csbasics.in**
   - [x] 5.1 `server/Dockerfile`: one image with the website and the counter
   - [x] 5.2 Database and uploads in a mounted volume; survive a container restart
   - [x] 5.3 Merge `feature/plan-002` to `main`; update `.agents/HANDOFF.md` in that merge
@@ -35,7 +35,7 @@ updated: 2026-10-12
 - [ ] **Phase 6 — Verification and handoff**
   - [x] 6.1 ~~Upload each file in `samples/` to the live site with a test key; rows appear correctly~~ Skipped: replaced by the first real student submissions, so no sample rows go on the live board (Anup, 2026-10-12)
   - [ ] 6.2 Tell Prateek the live site is up, so the plugin's default `AGENT_GOLF_API_BASE_URL` works
-  - [ ] 6.3 Gate passes; tick this plan and add to its Changelog
+  - [x] 6.3 Gate passes; tick this plan and add to its Changelog
 
 ## Goal
 
@@ -126,6 +126,10 @@ Students can register, upload, and see the board. Done when a solved real sessio
   - `real-wrong-answer-redacted.jsonl` as `help_me_unpack`: `200` unranked, `custom_setup` and `not_solved`, 7,604 / 1 / 736 / 1.
   
   All three match `samples/README.md`, and each reply's link opened as HTML. `brute_force_zip` is not in `problems.py`, so the two ZIP samples were uploaded to a scratch server that added it to the problem list for that run only. On the real app the same upload gets `400 unknown_problem`, so students cannot submit `brute_force_zip` until it is added. The scratch database and stored logs were 0600.
+
+#### 4.2 Real solved session
+- Acceptance: Anup's solved real session, uploaded with a test key, shows a ranked row.
+- Result (2026-10-12, reported by Anup): a real Nemotron solve was ranked at 11,466 tokens. Tested locally on `main` at `96b61dc`, which has the same code as the live deployment (`5e2b2b8`; the two differ only in `.agents/HANDOFF.md` and this plan). It was not uploaded to the live site, so the live board stays free of test rows, as for 6.1.
 
 ### Phase 5 — Docker and deployment
 
@@ -224,3 +228,4 @@ Students can register, upload, and see the board. Done when a solved real sessio
 - 2026-10-12 — 5.3 done: `feature/plan-002` merged into `main` (`--no-ff`) with `.agents/HANDOFF.md` rewritten in that merge commit, without the server's address. Gate on the merged tree: `Ran 132 tests … OK`, `gate: ok`. `feature/plan-002` was then moved to the same commit.
 - 2026-10-12 — 5.5 done: no test key, `access_token` or upload content in the app's or the tunnel connector's log after a live login, a URL-key request and a marker upload. The connector logs failed requests' URLs during a redeploy only. The test user was deleted, and the live data is empty again.
 - 2026-10-12 — 5.5 approved by Anup. 6.1 skipped: it is replaced by the first real student submissions, so no sample rows go on the live board. The samples already give their `samples/README.md` verdicts locally (4.1). Still open: 4.2 (Anup sends a solved real session after his solve test), 6.2 and 6.3. Nothing more on the server for now.
+- 2026-10-12 — 4.2 done (Anup): a real Nemotron solve was ranked at 11,466 tokens, tested locally on `main` at `96b61dc` (the live code), not on the live site. 6.3 done: `bash tools/check.sh` → `Ran 132 tests … OK`, `gate: ok`. Phases 1 to 5 are complete. Phase 6 stays open only for 6.2 (tell Prateek the live site is up), so the plan stays `started`.
