@@ -15,9 +15,8 @@ from pathlib import Path
 from server.config import Settings
 from server.problems import Problem
 
-# The one place the counter is imported. Plan 002 step 4.1 swaps this line for
-# from server.counter import score, NotPiLogError, UNRANKING_REASONS, WARNING_REASONS
-from server.standin_counter import NotPiLogError, UNRANKING_REASONS, WARNING_REASONS, score
+# The one place the counter (server/counter/, plan 003) is imported.
+from server.counter import NotPiLogError, UNRANKING_REASONS, WARNING_REASONS, score
 
 MAX_SESSION_BYTES = 20 * 1024 * 1024  # a bigger `session` is file_too_large
 

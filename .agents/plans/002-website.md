@@ -24,8 +24,8 @@ updated: 2026-10-11
   - [x] 3.2 Submission page: username, model, numbers, solved, reasons; never prompts, folders or raw log
   - [x] 3.3 Rules page: the seven rules, each problem's instructions and setup, scoring, install and submit steps
 - [ ] **Phase 4 — Real counter** (after Amit merges `counter` to `main`)
-  - [ ] 4.1 Bring `main` into this branch; import from `server.counter`; delete the stand-in
-  - [ ] 4.2 Upload each file in `samples/` with a test key; rows and verdicts match `samples/README.md`
+  - [x] 4.1 Bring `main` into this branch; import from `server.counter`; delete the stand-in; the three `samples/*.jsonl` give the verdicts in `samples/README.md`
+  - [ ] 4.2 Upload Anup's solved real session with a test key; it shows a ranked row
 - [ ] **Phase 5 — Docker and deployment at agent-golf.justuju.in**
   - [x] 5.1 `server/Dockerfile`: one image with the website and the counter
   - [x] 5.2 Database and uploads in a mounted volume; survive a container restart
@@ -44,7 +44,7 @@ Students can register, upload, and see the board. Done when a solved real sessio
 ## Context
 
 - Contract and rules: `docs/spec.md`. "Contract: student key validation" is Prateek's and fixed; the rest was agreed in 1.1 and 1.2. Change none of it without telling the other two.
-- Counter: `server/counter/` is Amit's (branch `counter`, plan 003); never create or edit files there. Until it merges, the website calls the stand-in from 2.3, which has the same names (`score`, `NotPiLogError`, `UNRANKING_REASONS`, `WARNING_REASONS`); 4.1 swaps the import. "Solved" is one generic check inside the counter, so the website never needs per-problem scoring code.
+- Counter: `server/counter/` is Amit's (plan 003, on `main` since `3a5873b`); never create or edit files there. Since 4.1, `server/submissions.py` is the one place that imports it (`score`, `NotPiLogError`, `UNRANKING_REASONS`, `WARNING_REASONS`); the stand-in from 2.3 is deleted. "Solved" is one generic check inside the counter, so the website never needs per-problem scoring code.
 - Problem config (`server/`, from 2.4): one entry per Hackattic problem with slug, title, Hackattic URL, instructions, model (`provider/model` or `"any"`) and thinking level (a level or `"any"`), plus the rules text and `rules_version`. It is the single source for the problem list, the `unknown_problem` check, the `agreed` setup sent to the counter, and the board and rules pages. Adding a problem means adding an entry. `help_me_unpack` takes any model and any thinking level (`"any"`/`"any"`) for Monday, as Step 0 decided (plan 001).
 - Models (`docs/spec.md`, 810982a and c1b61da): only models and levels that actually answered count. With `"any"` the match is skipped, but a model-`"any"` session that used more than one model gets `model_switched` (unranks). The board shows a model column only when the problem's model is `"any"`; the submission page always shows the model.
 - Plugin: Prateek (plan 004) reads the server origin from `AGENT_GOLF_API_BASE_URL` (`http://localhost:8000` locally, `https://agent-golf.justuju.in` live). The website reads the same variable to build the absolute `url` in replies.
@@ -120,6 +120,12 @@ Students can register, upload, and see the board. Done when a solved real sessio
 - Files: `server/` (one import); delete `server/standin_counter.py` and its tests
 - Do: after `counter` merges, bring `main` into this branch; `from server.counter import score, NotPiLogError, UNRANKING_REASONS, WARNING_REASONS`.
 - Acceptance: the gate passes with both the counter's and the website's tests.
+- Result (2026-10-12): merged `main` at `3a5873b` (no conflicts); the merged tree passed with 136 tests. After the swap, with `server/standin_counter.py` and its 11 tests deleted, `bash tools/check.sh` → `Ran 125 tests … OK`, `gate: ok`. `server/.dockerignore` also leaves out `**/test_*.py`; the rebuilt image has `counter/` without `test_counter.py`, and `server.app` and `server.counter` import inside it. Live check (Kiro), one test user per sample so no folder counts as reused, `agreed` `"any"`/`"any"` as `samples/README.md` says:
+  - `real-zip-redacted.jsonl` as `brute_force_zip`: `200` ranked, `usage_not_recorded`, 202,053 tokens, 10 prompts, 599 characters, 15 tool calls, solved.
+  - `real-second-redacted.jsonl` as `brute_force_zip`: `200` unranked, `not_solved`, 79,221 / 2 / 41 / 9.
+  - `real-wrong-answer-redacted.jsonl` as `help_me_unpack`: `200` unranked, `custom_setup` and `not_solved`, 7,604 / 1 / 736 / 1.
+  
+  All three match `samples/README.md`, and each reply's link opened as HTML. `brute_force_zip` is not in `problems.py`, so the two ZIP samples were uploaded to a scratch server that added it to the problem list for that run only. On the real app the same upload gets `400 unknown_problem`, so students cannot submit `brute_force_zip` until it is added. The scratch database and stored logs were 0600.
 
 ### Phase 5 — Docker and deployment
 
@@ -194,3 +200,4 @@ Students can register, upload, and see the board. Done when a solved real sessio
 - 2026-10-11 — Terminal look (branch `design/terminal-ui`, picked by Anup from three directions in Claude Design): dark background, JetBrains Mono self-hosted under `server/static/fonts/` (SIL OFL, `OFL.txt`), green accent, amber for problems; comment-style headings, a `$ golf board <slug>` line, the rank-1 row highlighted, unranked reasons and submission status marked. Templates changed only in markup hooks (classes, the header wordmark); no route, text or test changed. Checked at 1440 and 390 px: no page wider than the screen; the board table scrolls sideways on phones. Gate: `Ran 112 tests … OK`, plugin 89 pass, `gate: ok`.
 - 2026-10-11 — Merged `design/terminal-ui` (`a23af62`, a fast-forward). The database file is now 0600 too: `db.init_db` creates it 0600 before SQLite opens it and sets an existing one to 0600 at startup, so Anup's older `server/data/agent_golf.db` becomes 0600 the next time the server starts; SQLite gives its journal files the same mode. Two new tests in `test_config.py`. Gate: `Ran 114 tests … OK`, `gate: ok`.
 - 2026-10-11 — Step 0 kept `help_me_unpack` at `"any"`/`"any"` for Monday (recorded in plan 001); the placeholder comment in `server/problems.py` is gone. The done-test is now a solved real session, supplied by Anup and uploaded with a test key, instead of `samples/pass.jsonl`. Next: wait for Amit's counter on `main` (4.1) and Anup's host details (5.4).
+- 2026-10-12 — 4.1 done: merged `main` with Amit's counter (`3a5873b`); `server/submissions.py` imports from `server.counter`; the stand-in and its tests are deleted; `**/test_*.py` added to `.dockerignore`. The three samples give the verdicts in `samples/README.md`. 4.2 is now Anup's solved real session, which replaces the old sample check. Next: 4.2 (Anup's session) and 5.4 (Anup's host details).

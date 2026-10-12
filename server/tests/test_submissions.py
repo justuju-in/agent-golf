@@ -486,7 +486,7 @@ class SubmissionsTest(UploadTestCase):
 
 
 class ConfiguredCounterTest(UploadTestCase):
-    """Against whichever counter submissions.py imports (the stand-in until 4.1)."""
+    """Against the counter submissions.py imports (server.counter, plan 003)."""
 
     def test_reply_is_the_counters_result(self):
         content = session()

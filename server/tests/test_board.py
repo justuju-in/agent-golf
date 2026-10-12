@@ -379,8 +379,8 @@ class TextTest(unittest.TestCase):
 
 
 class ConfiguredCounterBoardTest(unittest.TestCase):
-    """Mixed uploads, scored by whichever counter submissions.py imports (the stand-in
-    until 4.1): the board agrees with the replies."""
+    """Mixed uploads, scored by the counter submissions.py imports (server.counter):
+    the board agrees with the replies."""
 
     def test_board_matches_the_replies(self):
         settings = Settings(data_dir=Path(self.enterContext(tempfile.TemporaryDirectory())))
@@ -420,14 +420,6 @@ class ConfiguredCounterBoardTest(unittest.TestCase):
         for n, player, reply in reversed(replies):
             if player not in best:
                 latest.setdefault(player, reply)
-        # For these logs the stand-in gives every case the board handles; the real counter
-        # (step 4.1) may score them all alike.
-        if submissions.score.__module__ == "server.standin_counter":
-            ranked_too = {player for n, player, reply in replies if player in best and reply["status"] == "unranked"}
-            self.assertGreater(len(best), 1)
-            self.assertTrue(latest)
-            self.assertTrue(ranked_too)  # players with an unranked attempt that is not listed
-            self.assertGreater(len({score(reply) for n, reply in best.values()}), 1)
 
         page = parse(client.get("/").text)
         ranked = page.find_all("table", id="ranked")

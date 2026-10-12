@@ -10,8 +10,9 @@ data/
 **/__pycache__/
 **/*.pyc
 
-# Tests; the site does not need them.
+# Tests, wherever they are (tests/, and counter/test_*.py); the site does not need them.
 tests/
+**/test_*.py
 
 # What the root .gitignore keeps private, at any depth: local databases, env files, uploads.
 **/*.db
