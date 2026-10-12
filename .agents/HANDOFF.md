@@ -2,35 +2,36 @@
 
 <!-- Overwrite, don't append. Keep under 60 lines. History lives in plans and git. -->
 
-Updated: 2026-10-12 (Kiro, for Anup: plan 002 done and archived; `main` at `50df42b` deployed)
+Updated: 2026-10-12 (Kiro, for Anup: `fix/rescore-on-resubmit` and `fix/any-model-no-switch` merged into `main` at `fd185d8` and deployed; every submission re-scored)
 
 ## Active work
-- Website (plan 002): done, archived at `.agents/plans/archive/002-website.md`, merged into `main` at `50df42b`. Nothing open; 4.2 and 5.5 are done.
-- Live: https://agent-golf.csbasics.in, through a Cloudflare Tunnel to our shared server. The `agent-golf` container runs `main` at `50df42b` on `127.0.0.1:8077` (same volume and env, `--no-access-log`). Deploy steps: `server/README.md`, "Live site".
-- Open problems: `help_me_unpack` and `brute_force_zip`, both model "any" and thinking level "any".
-- Rules: 11 rules (`rules_version` `mvp-2`) in `docs/spec.md` and `server/problems.py`. `/rules` shows the install step, the start command, a "Using GitHub Copilot" section (Copilot Auto; no `/compact`, no provider switch) and a playground-mode note.
-- Supported: GitHub Copilot Auto (via `pi-github-copilot-auto`) and OpenRouter models. The counter accepts Hackattic's `"passed (playground mode)"` as solved.
-- Fixed in `8eb210f`: `custom_setup` no longer fires on every clean session; it fires only for real extra setup (context files, skills, an appended prompt, or a section an extension added).
-- Data: live class data from Class 16 (12 Oct). Do not delete it. Verdicts are stored, not re-scored: submissions 2 to 6 were all scored before `8eb210f`. A re-run of `/golf-submit` is scored again only if the session file changed since its last upload; a byte-identical file gets its stored verdict back.
+- Website (plan 002): done, archived at `.agents/plans/archive/002-website.md`. Since then on `main`: `fix/rescore-on-resubmit` and `fix/any-model-no-switch` (`358ba46`), both merged at `fd185d8`.
+- Live: https://agent-golf.csbasics.in, through a Cloudflare Tunnel to our shared server. The `agent-golf` container runs `main` at `fd185d8` on `127.0.0.1:8077` (same volume and env, `--no-access-log`). Deploy steps: `server/README.md`, "Live site".
+- Open problems: `help_me_unpack` and `brute_force_zip`, both model "any" and thinking level "any". Model "any" now allows several models in one session: `model_switched` is no longer emitted (the code stays only as a label for older rows).
+- Rules: 11 rules, `rules_version` `mvp-3` (rule 1 no longer says to keep one model), in `docs/spec.md` and `server/problems.py`. `/rules` shows the install step, the start command, a "Using GitHub Copilot" section ("Auto may change model during a session; that is fine.") and a playground-mode note. The version is in `/api/v1/problems`; the page does not print it.
+- Supported: GitHub Copilot Auto (via `pi-github-copilot-auto` 0.3.0) and OpenRouter models. Hackattic's `"passed (playground mode)"` counts as solved. `custom_setup` fires only for real extra setup (context files, skills, an appended prompt, or a section an extension added).
+- Resubmitting (live since `fd185d8`): `/golf-submit` on an unchanged session file is scored again with the current counter, and only its status, reasons and metrics change; its times, link, folder fields and stored file stay. A changed file of the same session replaces the entry, keeping its link.
+- Data: live class data from Class 16 (12 Oct). Do not delete it. Every submission (ids 2 to 7) was re-scored on the server with the deployed counter at 18:54 IST, after a backup in the volume (`/data/agent_golf.db.bak-20261012T132357Z`; `…T121754Z` is from the first re-score, at 17:48 IST).
+- Current verdicts, all `help_me_unpack` (no `brute_force_zip` submissions yet): ranked #1 submission 5 (38,273 tokens), #2 submission 2 (48,857), #3 submission 7 (438,319; warning `usage_not_recorded`). Submission 3 (103,400; warning `usage_not_recorded`) is ranked but not its player's best (5 is). Unranked, `not_solved`: 4 (59,431; no Hackattic pass in any tool result) and 6 (45,625; "passed" only in the agent's own text, rule 9).
 - Plugin (plan 004): npm `agent-golf` 0.1.1 (tags `preview` and `latest`) defaults to https://agent-golf.csbasics.in. Its source is not on `origin/feature/plan-004` yet (last push 2026-10-11). Phase 3 (end-to-end on the live site) is open; it merges last.
 - Running on the server: `agent-golf` (stop with `docker stop agent-golf`) and `agent-golf-tunnel` (Cloudflare's connector; leave it alone).
 
 ## Verified (2026-10-12)
-- Gate on `50df42b`: `Ran 134 tests … OK`, `gate: ok`.
-- After deploying `50df42b`: `/rules` shows "Using GitHub Copilot" and the playground note; `/api/v1/problems` lists both problems, `mvp-2`; users and submissions unchanged by the redeploy.
-- Submission 5 (`help_me_unpack`, stored as unranked with `custom_setup` and `not_solved`): its stored log has Hackattic's `"passed (playground mode)"` in a tool result. The new counter, run read-only on that file in the container, gives no reasons, solved, 38,273 tokens, 1 prompt.
+- Gate on `fd185d8`: `Ran 137 tests … OK`, `gate: ok`.
+- After deploying `fd185d8`, through Cloudflare: `/api/v1/problems` lists both problems with `rules_version` `mvp-3`. `curl` of `/rules` shows `pi install npm:pi-github-copilot-auto@0.3.0` as plain text (no `__cf_email__` link or decode script; Cloudflare strips the `email_off` markers), "Auto may change model during a session; that is fine." and "Setup: any model; any thinking level". Users and submissions unchanged by the redeploy.
+- Re-score at 18:54 IST: only submission 3 changed (unranked, `model_switched` + `usage_not_recorded` → ranked, `usage_not_recorded`). Compared with the backup, no other column, user or stored log changed. The 17:48 IST re-score had cleared the old `custom_setup` from 2 to 6 and ranked 2 and 5.
 - A real solved help_me_unpack session (Pi, free OpenRouter Nemotron, one prompt) ranked on a local server at `96b61dc`: 11,466 tokens, 2 tool calls, 3 model requests; the Hackattic token never appeared in the log. Not kept as a sample (it was the instructor's account).
 - Live, through Cloudflare: `http://` gets a 301 to `https://`. Registration, `/api/v1/me`, `/golf-login` and `/golf-submit` work. A 19 MiB upload reaches the app, and 21 MiB gets the app's own 413. No keys or upload content in the app's or the connector's log.
 
 ## Decisions
 - MVP is Pi-only; Hackattic's reply in the log is the only evidence; anti-cheat is version 2.
-- Problems use model "any" / thinking level "any" for the first week.
+- Problems use model "any" / thinking level "any" for the first week; model "any" allows several models per session (`mvp-3`, Anup).
+- An identical resubmission is re-scored, and only its verdict changes (Anup).
+- The Copilot install command is wrapped in `<!--email_off-->`; Cloudflare's Email Address Obfuscation stays on for the zone (Anup).
 - Hosted at csbasics.in behind a Cloudflare Tunnel, with no proxy or open ports on the shared server. Port 8000 there belongs to another app, so ours is 8077.
 - The rules page's start command sets `AGENT_GOLF_API_BASE_URL` to the site's own origin, and starts Pi with no other extensions, skills, context files, MCP or prompt templates.
 
 ## Blockers / open questions
-- Old verdicts: submissions 2 to 6 keep the old counter's verdict (submission 5 would now rank). Anup to decide: re-score them once on the server, or leave them.
-- Cloudflare's Email Address Obfuscation (on by default) rewrites `pi-github-copilot-auto@0.3.0` in `/rules` as `[email protected]` in the HTML. Browsers with JavaScript decode it; curl and no-JS readers see the broken command. Fix: turn the setting off for the zone, or wrap that text in `<!--email_off-->…<!--/email_off-->` in `server/templates/rules.html`.
 - GitHub Actions blocked by an org billing lock; the local gate is the only check.
 
 ## Next action
