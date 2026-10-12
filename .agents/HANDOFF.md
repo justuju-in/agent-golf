@@ -2,40 +2,43 @@
 
 <!-- Overwrite, don't append. Keep under 60 lines. History lives in plans and git. -->
 
-Updated: 2026-10-12 15:15 IST (Claude, for Anup, on `main`)
+Updated: 2026-10-12 15:40 IST (Kiro, for Anup: `feature/plan-002` merged into `main`, plan 002 step 5.3)
 
 ## Active work
-- Live: https://agent-golf.csbasics.in (Cloudflare Tunnel to the Justuju server; app container on 127.0.0.1:8077). Deployed from `feature/plan-002` at `316e6f7`, which includes the real counter and Amit's `311ea1d` solved-check fix.
-- Open problems: `help_me_unpack` and `brute_force_zip`, both model "any", thinking level "any".
-- Plugin: `agent-golf@0.1.0` on npm still defaults to agent-golf.justuju.in; until Prateek publishes the csbasics.in default, students set `AGENT_GOLF_API_BASE_URL=https://agent-golf.csbasics.in`.
-- Running: the `agent-golf` and `agent-golf-tunnel` containers on the server.
+- Website (plan 002): merged into `main` here, and `feature/plan-002` is moved to the same commit. Done through 5.4. Open: 4.2 (Anup's solved real session), 5.5 (no keys in the tunnel's log), Phase 6.
+- Live: https://agent-golf.csbasics.in, through a Cloudflare Tunnel to our shared server. The `agent-golf` container runs `feature/plan-002` at `5e2b2b8` on `127.0.0.1:8077`. Deploy steps: `server/README.md`, "Live site".
+- Open problems: `help_me_unpack` and `brute_force_zip`, both model "any" and thinking level "any".
+- Rules: 11 rules (`rules_version` `mvp-2`) in `docs/spec.md` and `server/problems.py`. `/rules` shows the install step (`pi install npm:agent-golf@preview`) and the start command for each attempt.
+- Data: users and submissions are empty. The `test_anup` user, its submission and its stored log were deleted.
+- Plugin (plan 004): on `feature/plan-004`, npm preview published; Phase 3 (end-to-end on the live site) is open; it merges last.
+- Running on the server: `agent-golf` (stop with `docker stop agent-golf`) and `agent-golf-tunnel` (Cloudflare's connector; leave it alone).
 
 ## Verified (2026-10-12)
-- `feature/plan-002` gate: `Ran 132 tests … OK`; counter on `main`: 27 tests OK.
-- Live: problem list, register, `/api/v1/me`, `/golf-login`, `/golf-submit` and the board all work through https://agent-golf.csbasics.in; a 19 MiB upload reaches the app, 21 MiB gets the app's own 413.
-- Solved check (`311ea1d`): heredoc-written scripts, `cd` before running, and a `passed` reply followed by an error count as solved; a pre-existing script never written in the session, a `passed` for another challenge and a rejected answer do not.
+- Gate on this merge: `Ran 132 tests … OK`, `gate: ok`.
+- Live, through Cloudflare: `/rules` shows the install and start steps; `/api/v1/problems` lists both problems with `rules_version` `mvp-2`; `http://` gets a 301 to `https://`; both boards show "No submissions yet".
+- Earlier today: registration, `/api/v1/me`, `/golf-login` and `/golf-submit` work live. A 19 MiB upload reaches the app, and 21 MiB gets the app's own 413.
 
 ## Decisions
 - MVP is Pi-only; Hackattic's reply in the log is the only evidence; anti-cheat is version 2.
 - Problems use model "any" / thinking level "any" for the first week.
-- Domain moved from justuju.in to csbasics.in; hosted behind a Cloudflare Tunnel, not a proxy on the server.
+- Hosted at csbasics.in behind a Cloudflare Tunnel, with no proxy or open ports on the shared server. Port 8000 there belongs to another app, so ours is 8077.
+- The rules page's start command sets `AGENT_GOLF_API_BASE_URL` to the site's own origin, and starts Pi with no other extensions, skills, context files, MCP or prompt templates.
 
 ## Blockers / open questions
-- Plugin `0.1.1` with the csbasics.in default (Prateek).
-- Rules page still has the install-steps placeholder and lacks the student rules (token via env var, no `!commands`, no extra Pi packages).
 - `custom_setup` warning appears even for a clean Pi session (Amit to check).
-- Cloudflare "Always Use HTTPS" not yet on for csbasics.in.
-- `test_anup` test user and its submission are on the live board; delete before students start.
+- The npm plugin's default origin: the start command sets it, so students are not blocked. Prateek to confirm the default is csbasics.in.
 - Real solved session sample still missing (plan 002 step 4.2).
 - GitHub Actions blocked by an org billing lock; the local gate is the only check.
 
 ## Next action
-Kiro: rules page install steps and rules, gate, push, redeploy. Then 5.3 (merge `feature/plan-002` to `main`, updating this file).
+Prateek: plan 004 step 3.1, end-to-end from a fresh laptop against https://agent-golf.csbasics.in using the rules page's steps, then merge `feature/plan-004` to `main`.
 
 ## Read next (≤6)
 1. `docs/spec.md`
 2. `.agents/plans/README.md`
 3. Your own plan file
+4. `server/README.md` ("Live site")
 
 ## Do not (promote to AGENTS.md at next checkpoint)
 - Do not put server IPs, tokens or keys in this public repo.
+- Do not touch the `agent-golf-tunnel` container, or publish the app on any port but `127.0.0.1:8077`.

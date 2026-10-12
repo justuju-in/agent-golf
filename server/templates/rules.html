@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Rules{% endblock %}
+
+{% block main %}
+    <h1>Rules</h1>
+    <div class="rules">
+      {%- for rule in rules %}
+      <p>{{ rule }}</p>
+      {%- endfor %}
+    </div>
+
+    <h2>Problems</h2>
+    {%- for problem in listed %}
+    <section class="problem" aria-labelledby="problem-{{ problem.slug }}">
+      <h3 id="problem-{{ problem.slug }}">{{ problem.title }}</h3>
+      <p><a href="{{ problem.challenge_url }}">{{ problem.title }} on Hackattic</a></p>
+      <p class="setup">Setup: {{ pages.setup_text(problem) }}</p>
+      <ul class="instructions">
+        {%- for line in problem.instructions %}
+        <li>{{ line }}</li>
+        {%- endfor %}
+      </ul>
+      <p>Submit with <code>/golf-submit {{ problem.slug }}</code>. See the <a href="/problems/{{ problem.slug }}">{{ problem.title }} board</a>.</p>
+    </section>
+    {%- else %}
+    <p>No problems are open yet.</p>
+    {%- endfor %}
+
+    <h2>Scoring</h2>
+    <p class="scoring">{{ pages.SCORING }}</p>
+
+    <h2 id="install">Install the plugin</h2>
+    <p>Install (once):</p>
+    <p class="command"><code>pi install npm:agent-golf@preview</code></p>
+    <p>Then restart Pi or run <code>/reload</code>.</p>
+
+    <h2 id="start">Start an attempt</h2>
+    <p>Start each attempt in a new, empty folder:</p>
+    <p class="command"><code>mkdir -p ~/golf/attempt-1 &amp;&amp; cd ~/golf/attempt-1</code></p>
+    <p class="command"><code>export HACKATTIC_TOKEN=&lt;your Hackattic token&gt;</code></p>
+    <p class="command"><code>AGENT_GOLF_API_BASE_URL={{ api_base_url }} pi --no-extensions -e ~/.pi/agent/npm/node_modules/agent-golf --no-skills --no-context-files --no-mcp --no-prompt-templates</code></p>
+    <p class="in-pi">In Pi: <code>/golf-login &lt;your key&gt;</code> (once), pick your model with <code>/model</code> before your first prompt, solve, then <code>/golf-submit &lt;problem&gt;</code>.</p>
+
+    <h2>Log in and submit</h2>
+    <ol class="how">
+      <li><a href="/register">Register</a> to get your secret key. It is shown once, so save it.</li>
+      <li>In Pi, run <code>/golf-login &lt;key&gt;</code> with that key.</li>
+      <li>Solve the problem in a new Pi session, started in a new, empty folder.</li>
+      <li>In that session, run <code>/golf-submit &lt;problem&gt;</code>
+        {%- if listed %}, for example <code>/golf-submit {{ listed[0].slug }}</code>{% endif %}. Its reply links to your submission's page.</li>
+    </ol>
+{%- endblock %}

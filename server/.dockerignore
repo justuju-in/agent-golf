@@ -1,0 +1,21 @@
+# Left out of the build context, so never in the image. Paths are relative to server/.
+
+# The local database, uploads and every scratch file, keys included.
+data/
+
+# Workflow review notes.
+.agents-review/
+
+# Bytecode, at any depth.
+**/__pycache__/
+**/*.pyc
+
+# Tests, wherever they are (tests/, and counter/test_*.py); the site does not need them.
+tests/
+**/test_*.py
+
+# What the root .gitignore keeps private, at any depth: local databases, env files, uploads.
+**/*.db
+**/*.sqlite
+**/.env
+**/uploads/

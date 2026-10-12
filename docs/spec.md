@@ -20,6 +20,10 @@ One attempt = one fresh Pi session in a new, empty folder. Students may make as 
 5. Finish: stop as soon as Hackattic says correct. Everything in the session counts, including wrong answers and dead ends.
 6. Submit: `/golf-submit` in that session. Resubmitting the same session replaces the earlier copy.
 7. Spot checks: unusually low scores may be asked to redo the attempt live.
+8. Pass your Hackattic token with `export HACKATTIC_TOKEN=…` before starting Pi, and tell the agent to read it from that variable. Never type the token into a prompt.
+9. The agent's own commands must print both Hackattic replies: the problem and the solve reply.
+10. Don't run commands yourself with `!`. Only the agent's work counts.
+11. No other Pi add-ons, skills or context files. Use the start command on the rules page.
 
 ## Problems
 
@@ -70,7 +74,7 @@ This section defines key validation only; it does not define submission failure 
 
 ```json
 {
-  "rules_version": "mvp-1",
+  "rules_version": "mvp-2",
   "rules": ["Current contest rules as plain text."],
   "problems": [
     {
