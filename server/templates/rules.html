@@ -31,7 +31,16 @@
     <p class="scoring">{{ pages.SCORING }}</p>
 
     <h2 id="install">Install the plugin</h2>
-    <p class="placeholder">Install steps for the Pi plugin will be added here when the plugin is published.</p>
+    <p>Install (once):</p>
+    <p class="command"><code>pi install npm:agent-golf@preview</code></p>
+    <p>Then restart Pi or run <code>/reload</code>.</p>
+
+    <h2 id="start">Start an attempt</h2>
+    <p>Start each attempt in a new, empty folder:</p>
+    <p class="command"><code>mkdir -p ~/golf/attempt-1 &amp;&amp; cd ~/golf/attempt-1</code></p>
+    <p class="command"><code>export HACKATTIC_TOKEN=&lt;your Hackattic token&gt;</code></p>
+    <p class="command"><code>AGENT_GOLF_API_BASE_URL={{ api_base_url }} pi --no-extensions -e ~/.pi/agent/npm/node_modules/agent-golf --no-skills --no-context-files --no-mcp --no-prompt-templates</code></p>
+    <p class="in-pi">In Pi: <code>/golf-login &lt;your key&gt;</code> (once), pick your model with <code>/model</code> before your first prompt, solve, then <code>/golf-submit &lt;problem&gt;</code>.</p>
 
     <h2>Log in and submit</h2>
     <ol class="how">

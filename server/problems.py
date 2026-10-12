@@ -13,7 +13,7 @@ import unicodedata
 from dataclasses import dataclass
 
 # Names the wording of RULES: change it whenever the wording changes.
-RULES_VERSION = "mvp-1"
+RULES_VERSION = "mvp-2"
 
 # docs/spec.md, "Rules for students", word for word but without markdown.
 RULES = (
@@ -32,6 +32,11 @@ RULES = (
     "6. Submit: /golf-submit in that session. Resubmitting the same session replaces the"
     " earlier copy.",
     "7. Spot checks: unusually low scores may be asked to redo the attempt live.",
+    "8. Pass your Hackattic token with export HACKATTIC_TOKEN=… before starting Pi, and tell"
+    " the agent to read it from that variable. Never type the token into a prompt.",
+    "9. The agent's own commands must print both Hackattic replies: the problem and the solve reply.",
+    "10. Don't run commands yourself with !. Only the agent's work counts.",
+    "11. No other Pi add-ons, skills or context files. Use the start command on the rules page.",
 )
 
 

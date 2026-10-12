@@ -7,7 +7,18 @@ from unittest import mock
 from server import problems
 from server.tests.test_board import FIXED, HELP, SCORING, UNSET, PageTestCase
 
-PLACEHOLDER = "Install steps for the Pi plugin will be added here when the plugin is published."
+COMMANDS = [
+    "pi install npm:agent-golf@preview",
+    "mkdir -p ~/golf/attempt-1 && cd ~/golf/attempt-1",
+    "export HACKATTIC_TOKEN=<your Hackattic token>",
+    # The page's own origin (PageTestCase's api_base_url), as the plugin needs it.
+    "AGENT_GOLF_API_BASE_URL=https://golf.example pi --no-extensions -e ~/.pi/agent/npm/node_modules/agent-golf"
+    " --no-skills --no-context-files --no-mcp --no-prompt-templates",
+]
+IN_PI = (
+    "In Pi: /golf-login <your key> (once), pick your model with /model before your first prompt,"
+    " solve, then /golf-submit <problem>."
+)
 
 
 class RulesPageTest(PageTestCase):
@@ -48,7 +59,13 @@ class RulesPageTest(PageTestCase):
         page = self.page("/rules")
         self.assertEqual(page.find("p", class_="scoring").text(), SCORING)
         self.assertEqual(page.find(id="install").text(), "Install the plugin")
-        self.assertEqual(page.find("p", class_="placeholder").text(), PLACEHOLDER)
+        self.assertEqual(page.find_all("p", class_="placeholder"), [])
+        self.assertEqual([command.text() for command in page.find_all("p", class_="command")], COMMANDS)
+        main = page.find("main").text()
+        self.assertIn("Install (once): pi install npm:agent-golf@preview Then restart Pi or run /reload.", main)
+        self.assertEqual(page.find(id="start").text(), "Start an attempt")
+        self.assertIn("Start each attempt in a new, empty folder:", main)
+        self.assertEqual(page.find("p", class_="in-pi").text(), IN_PI)
         steps = page.find("ol", class_="how")
         self.assertEqual(
             [item.text() for item in steps.find_all("li")],

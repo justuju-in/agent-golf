@@ -163,7 +163,14 @@ def problem_board(request: Request, slug: str, conn: Conn) -> HTMLResponse:
 def rules(request: Request) -> HTMLResponse:
     """The rules, and each listed problem's setup: what GET /api/v1/problems lists."""
     return templates.TemplateResponse(
-        request, "rules.html", {"rules": problems.RULES, "listed": problems.listed()}
+        request,
+        "rules.html",
+        {
+            "rules": problems.RULES,
+            "listed": problems.listed(),
+            # The start command points the plugin at this site's own origin.
+            "api_base_url": request.app.state.settings.api_base_url,
+        },
     )
 
 
