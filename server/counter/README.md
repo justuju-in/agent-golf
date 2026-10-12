@@ -28,15 +28,19 @@ The reason sets match the final spec at main `c1b61da` (2026-10-12).
 There is no local answer recomputation or `answer_mismatch` reason. Hackattic's
 actual response is the correctness evidence.
 
-Success requires `{"result":"passed"}` in a non-error tool result linked by
-`toolCallId` to a bash call whose command or referenced logged script mentions
-`hackattic.com`. URLs can be assembled from variables. Explicit `/challenges/slug`
-evidence for a different problem is rejected; when no literal path is present,
-the requested problem is used. Referenced absolute/relative script paths are
-resolved against session cwd. Shell directory changes and general dataflow are
-not interpreted. This is trusted-log evidence, not trace authentication; host-only
-evidence cannot independently identify a problem. Failed writes/edits and
-filesystem changes outside tracked writes/edits are not modeled.
+Success uses session-wide trusted evidence: any tool result containing
+`{"result":"passed"}` (including an error result), plus a logged command or
+written/edited file mentioning `hackattic.com/challenges/<requested slug>`.
+The slug match has a boundary, so a different slug or longer prefix does not match.
+Explicit host/slug variables in script-built URLs remain supported. Host-only
+mentions are insufficient. Shell heredocs, later execution, and `cd` need no
+filesystem reconstruction; toolCallId linkage and successful shell exit are not
+required. Assistant prose alone cannot establish acceptance.
+
+This intentionally does not associate a particular acceptance with one request
+when several problems occur in the same session. It relies on the fresh-session,
+one-problem rule and trusted uploads; it is not trace authentication. Commands
+and writes are treated as recorded evidence, without executing uploaded code.
 
 Custom system sections and broken IDs/timestamps produce warnings. Cost-rate
 validation and input-growth heuristics are not implemented (rates/context vary).

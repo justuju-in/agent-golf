@@ -66,7 +66,7 @@ class CounterTests(unittest.TestCase):
         self.assertTrue(score(log(*messages), 'brute_force_zip', AGREED, set())['metrics']['solved'])
         self.assertFalse(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
         messages[-1]['isError'] = True
-        self.assertFalse(score(log(*messages), 'brute_force_zip', AGREED, set())['metrics']['solved'])
+        self.assertTrue(score(log(*messages), 'brute_force_zip', AGREED, set())['metrics']['solved'])
 
     def test_script_built_url_and_relative_reference(self):
         messages = [assistant(content=[{'type': 'toolCall', 'id': 'write', 'name': 'write',
@@ -80,8 +80,49 @@ class CounterTests(unittest.TestCase):
         self.assertNotIn('answer_mismatch', result['reasons'])
         self.assertEqual(result['reasons'], [])
         self.assertFalse(score(log(*messages), 'brute_force_zip', AGREED, set())['metrics']['solved'])
+        # Session-wide evidence deliberately does not require linking the final call.
         messages[-1]['toolCallId'] = 'unrelated'
-        self.assertFalse(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
+        self.assertTrue(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
+
+    def test_heredoc_script_written_then_run_later(self):
+        messages = [assistant(content=[{'type': 'toolCall', 'name': 'bash', 'id': 'create',
+                    'arguments': {'command': "cat > solve.py <<'EOF'\nurl='https://hackattic.com/challenges/help_me_unpack/solve'\nEOF"}}]),
+                    {'role': 'toolResult', 'toolCallId': 'create', 'content': ''},
+                    assistant(content=[{'type': 'toolCall', 'name': 'bash', 'id': 'run',
+                    'arguments': {'command': 'python3 solve.py'}}]),
+                    {'role': 'toolResult', 'toolCallId': 'run', 'content': '{"result":"passed"}'}]
+        self.assertTrue(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
+        self.assertFalse(score(log(*messages), 'brute_force_zip', AGREED, set())['metrics']['solved'])
+
+    def test_script_run_after_cd(self):
+        messages = [assistant(content=[{'type': 'toolCall', 'name': 'write', 'id': 'create',
+                    'arguments': {'path': 'work/solve.py', 'content': "url='https://hackattic.com/challenges/help_me_unpack/solve'"}}]),
+                    assistant(content=[{'type': 'toolCall', 'name': 'bash', 'id': 'run',
+                    'arguments': {'command': 'cd work && python3 solve.py'}}]),
+                    {'role': 'toolResult', 'toolCallId': 'run', 'content': '{"result":"passed"}'}]
+        self.assertTrue(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
+
+    def test_passed_result_survives_shell_error(self):
+        messages = [assistant(content=[{'type': 'toolCall', 'name': 'bash', 'id': 'run',
+                    'arguments': {'command': 'curl https://hackattic.com/challenges/help_me_unpack/solve; exit 1'}}]),
+                    {'role': 'toolResult', 'toolCallId': 'run', 'isError': True,
+                     'content': [{'type': 'text', 'text': '{"result":"passed"}\nCommand exited with code 1'}]}]
+        result = score(log(*messages), 'help_me_unpack', AGREED, set())
+        self.assertTrue(result['metrics']['solved'])
+        self.assertNotIn('not_solved', result['reasons'])
+
+    def test_passed_for_different_or_prefix_slug_is_not_solved(self):
+        for url in ('https://hackattic.com/challenges/brute_force_zip/solve',
+                    'https://hackattic.com/challenges/help_me_unpack_extra/solve'):
+            messages = [assistant(content=[{'type': 'toolCall', 'name': 'bash', 'id': 'run',
+                        'arguments': {'command': 'curl ' + url}}]),
+                        {'role': 'toolResult', 'toolCallId': 'run', 'content': '{"result":"passed"}'}]
+            self.assertFalse(score(log(*messages), 'help_me_unpack', AGREED, set())['metrics']['solved'])
+
+    def test_passed_without_challenge_evidence_is_not_solved(self):
+        result = score(log(assistant(), {'role': 'toolResult', 'content': '{"result":"passed"}'}),
+                       'help_me_unpack', AGREED, set())
+        self.assertFalse(result['metrics']['solved'])
 
     def test_thinking_level_change_is_not_reply_evidence(self):
         entries = [json.loads(line) for line in log(assistant()).splitlines()]
