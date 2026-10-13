@@ -1,6 +1,6 @@
 {
   "name": "agent-golf",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Zero-model-call Pi commands for Agent Golf login, raw session submission and problem browsing",
   "license": "MIT",
   "homepage": "https://agent-golf.csbasics.in",

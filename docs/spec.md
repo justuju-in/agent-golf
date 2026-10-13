@@ -89,7 +89,7 @@ This section defines key validation only; it does not define submission failure 
 }
 ```
 
-- Built from the problem config (see [Problems](#problems)); a problem is listed once its model and thinking level are set. Either may be `"any"`: show that as "any model, one per session" or "any thinking level". An empty `problems` list is valid; the plugin still shows the rules.
+- Built from the problem config (see [Problems](#problems)); a problem is listed once its model and thinking level are set. Either may be `"any"`: show that as "any model" or "any thinking level". An empty `problems` list is valid; the plugin still shows the rules.
 - `rules` mirror "Rules for students" above, and `rules_version` names that wording. `instructions` are public constraints and evidence requirements, never hints or solution code.
 - Safety, kept by the website and checked by the plugin: every string is plain text and is rendered as text (no markup, terminal control or escape sequences); the body is at most 64 KB and any one string at most 1,000 characters; `challenge_url` is exactly `https://hackattic.com/challenges/<slug>` for that problem's slug.
 - Browsing costs zero tokens: the plugin shows the list with Pi UI only, never through the model or the session, and sends no key and no log.

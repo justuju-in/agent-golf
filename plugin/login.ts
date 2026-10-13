@@ -48,14 +48,20 @@ function isCredentialFile(value: unknown): value is CredentialFile {
 export async function readStoredCredential(
   origin: string,
   directory = join(homedir(), ".config", "agent-golf"),
+  platform: NodeJS.Platform = process.platform,
 ): Promise<Credential | undefined> {
+  // Windows has no Unix permission bits: Node reports files as 0o666 and folders
+  // as 0o777 whatever chmod did, so the group/other check would always fail
+  // there. The folder sits in the user's profile, which Windows already keeps
+  // private to that user.
+  const checkModes = platform !== "win32";
   let file;
   try {
     const folder = await lstat(directory);
-    if (!folder.isDirectory() || (folder.mode & 0o077) !== 0) throw new Error("insecure-credential-directory");
+    if (!folder.isDirectory() || (checkModes && (folder.mode & 0o077) !== 0)) throw new Error("insecure-credential-directory");
     file = await open(join(directory, "credentials.json"), constants.O_RDONLY | constants.O_NOFOLLOW);
     const info = await file.stat();
-    if (!info.isFile() || (info.mode & 0o077) !== 0) throw new Error("insecure-credential-file");
+    if (!info.isFile() || (checkModes && (info.mode & 0o077) !== 0)) throw new Error("insecure-credential-file");
     const parsed: unknown = JSON.parse(await file.readFile("utf8"));
     if (!isCredentialFile(parsed)) throw new Error("invalid-credential-file");
     return parsed.credentials[origin];

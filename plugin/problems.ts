@@ -106,7 +106,7 @@ export async function browseProblems(
         const problem = data.problems[index];
         await showProblemView(ctx, "Problem details", [
           problem.title, `Problem: ${problem.slug}`, problem.challenge_url,
-          `Model: ${problem.model === "any" ? "any model, one per session" : problem.model}`,
+          `Model: ${problem.model === "any" ? "any model" : problem.model}`,
           `Thinking level: ${problem.thinking_level === "any" ? "any thinking level" : problem.thinking_level}`,
           "", ...problem.instructions, "", ADVISORY,
         ].join("\n"), "back to problems", "back to problems");
