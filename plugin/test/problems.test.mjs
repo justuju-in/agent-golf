@@ -66,7 +66,7 @@ test("public browser shows rules, details and any setup; edits are discarded", a
   assert.equal(result.type, "info");
   assert.match(f.editors[0].prefill, /Rules version: mvp-1/);
   assert.ok(f.editors[0].prefill.includes(DATA.rules[0]));
-  assert.match(f.editors[1].prefill, /any model, one per session/);
+  assert.match(f.editors[1].prefill, /Model: any model\n/);
   assert.match(f.editors[1].prefill, /any thinking level/);
   assert.ok(f.editors[1].prefill.includes(DATA.problems[0].challenge_url));
   assert.ok(f.editors[1].prefill.includes(DATA.problems[0].instructions[0]));
@@ -306,7 +306,7 @@ for (const kind of ["populated", "empty", "unavailable"]) {
       const views = client.seen.filter((record) => record.method === "editor");
       assert.equal(views.length, kind === "populated" ? 2 : kind === "empty" ? 1 : 0);
       if (kind !== "unavailable") assert.ok(views[0].prefill.includes("Rules version: mvp-1"));
-      if (kind === "populated") assert.match(views[1].prefill, /any model, one per session/);
+      if (kind === "populated") assert.match(views[1].prefill, /Model: any model\n/);
       assert.deepEqual((await client.request("get_entries")).entries, entries);
       assert.deepEqual((await client.request("get_messages")).messages, messages);
       assert.deepEqual(await client.request("get_state"), state);

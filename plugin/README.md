@@ -2,7 +2,7 @@
 
 Pi commands for the Agent Golf coding-agent leaderboard. Login, browsing and submission never call a model or compute scores locally.
 
-**0.1.1:** uses https://agent-golf.csbasics.in and includes read-only interactive problem views. Local integration with the real counter is verified and the production catalogue is reachable. A fresh solved production submission has not been verified; follow your organizer's readiness announcement before competition use.
+**0.1.2:** fixes `/golf-submit` on Windows ("Stored credentials could not be read securely") and shows `any` model setup as "any model". Uses https://agent-golf.csbasics.in.
 
 ## Install and update
 
@@ -20,7 +20,7 @@ Start a new Pi process, or run `/reload` in an existing one. To update an unpinn
 pi update --extensions
 ```
 
-Restart Pi or `/reload` afterward. An exact version such as `npm:agent-golf@0.1.0` is pinned; updating does not advance it to a different version. Remove the old pinned source (`pi remove npm:agent-golf@0.1.0`), then install `npm:agent-golf@0.1.1` explicitly to replace that pin. The `npm:agent-golf@preview` installation follows the preview channel; it does not automatically switch to `latest`.
+Restart Pi or `/reload` afterward. An exact version such as `npm:agent-golf@0.1.0` is pinned; updating does not advance it to a different version. Remove the old pinned source (`pi remove npm:agent-golf@0.1.0`), then install `npm:agent-golf@0.1.2` explicitly to replace that pin. The `npm:agent-golf@preview` installation follows the preview channel; it does not automatically switch to `latest`.
 
 **Updating from 0.1.0:** the default server origin changed. Unset any old `AGENT_GOLF_API_BASE_URL` override, update/restart Pi, and run `/golf-login` with your student key valid on the new website. Old-origin credentials are preserved but never migrated or sent to the new origin.
 
@@ -30,7 +30,7 @@ Restart Pi or `/reload` afterward. An exact version such as `npm:agent-golf@0.1.
 
 Browse public contest rules, challenge URLs, instructions and each problem's model/thinking setup. Rules open first, followed by a problem selector. Close a detail view to return to the list; cancel the list to exit. An empty list still shows the rules.
 
-Interactive Pi uses read-only, scrollable text views: Enter on rules opens the problem list, Esc closes browsing, and Enter/Esc on details returns to the list. Arrow keys, Page Up/Down and Home/End scroll; navigation hints use your configured confirm/cancel keys. RPC clients retain temporary text-editor dialogs with explicit navigation titles; all edits are discarded. Nothing is inserted into your prompt or session. `any` setup is displayed as "any model, one per session" or "any thinking level".
+Interactive Pi uses read-only, scrollable text views: Enter on rules opens the problem list, Esc closes browsing, and Enter/Esc on details returns to the list. Arrow keys, Page Up/Down and Home/End scroll; navigation hints use your configured confirm/cancel keys. RPC clients retain temporary text-editor dialogs with explicit navigation titles; all edits are discarded. Nothing is inserted into your prompt or session. `any` setup is displayed as "any model" or "any thinking level".
 
 Browsing sends no key, cookie or session log, makes no model calls, and never starts/binds an attempt or changes your setup. The catalogue is advisory; server submission checks are authoritative. Replies are bounded to 64 KB and strings to 1,000 Unicode characters, with terminal-safety and exact Hackattic URL checks.
 

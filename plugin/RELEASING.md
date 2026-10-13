@@ -2,7 +2,12 @@
 
 Maintainer instructions for the private source repository. This file and DEVELOPMENT.md are excluded from the public npm artifact. The student README is the published usage guide.
 
-## Current release handoff (2026-10-12)
+## Current release (2026-10-13): 0.1.2
+
+- 0.1.2 fixes `/golf-submit` on Windows: the credential check required Unix permission bits that Windows never reports (Node shows 0o666/0o777), so it always failed there. The check now runs only off Windows. It also shows `any` model setup as "any model" (rules mvp-3).
+- Gate before publication: server/counter OK and plugin 104 tests, 100 pass, 4 skipped, 0 fail (with Pi 1.1.0 on PATH). Publish with `--tag latest`, then point `preview` at 0.1.2 too, since students installed `@preview`.
+
+## Previous release handoff (2026-10-12)
 
 - User approved `0.1.1`, keeping read-only browser views, switching the default/homepage to `https://agent-golf.csbasics.in`, publishing to `latest` and moving `preview` to the same version. Rebase remains parked; prepare from original feature/plan-004.
 - Production catalogue at the new hostname returns HTTP 200. Website 85718a5 activates the real counter; its unmodified local source passed 127 backend tests, published 0.1.0 passed 101 plugin integration tests and 11 scoring replays. After publication, Anup confirmed students submitted through npm agent-golf throughout Class 16: five live submissions, two ranked at his reported snapshot. This is accepted production E2E evidence for plan 004 step 3.1, not an assistant-performed fresh solve; later submissions/re-scoring change those counts. No student keys/raw logs were collected or production data altered.
