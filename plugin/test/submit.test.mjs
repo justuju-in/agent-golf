@@ -223,6 +223,25 @@ for (const total of [0, 42]) {
   });
 }
 
+test("ranked multi-model replies preserve server verdict, metrics and model order", async (t) => {
+  const f = await fixture(t);
+  const credentials = await readFile(join(f.credentialDir, "credentials.json"));
+  f.respond(200, { ...f.ranked, metrics: { ...METRICS, total_tokens: 137, models: ["provider/second", "provider/first"] } });
+  const result = await submitSession("help_me_unpack", f.ctx, f.options);
+  assert.equal(result.type, "info");
+  assert.equal(result.message, [
+    "Submission ranked. Reasons: none.",
+    "Tokens: 137; prompts: 2; characters: 17; tool calls: 3; solved: true.",
+    "Models: provider/second, provider/first; thinking levels: low.",
+    f.ranked.url,
+  ].join("\n"));
+  secretFree(result);
+  assert.equal(f.requests.length, 1);
+  assert.deepEqual(f.requests[0].bytes, BYTES);
+  assert.deepEqual(await readFile(f.sessionFile), BYTES);
+  assert.deepEqual(await readFile(join(f.credentialDir, "credentials.json")), credentials);
+});
+
 test("model_switched displays the server's multiple models and verdict unchanged", async (t) => {
   const f = await fixture(t);
   f.respond(200, { ...f.ranked, status: "unranked", reasons: ["model_switched"], metrics: { ...METRICS, models: ["provider/first", "provider/second"] } });
@@ -355,16 +374,17 @@ test("timeout and unreachable server warn about uncertain delivery and do not re
   assert.equal(f.requests.length, 1);
 });
 
-for (const [confirmed, status, reasons, total] of [
+for (const [confirmed, status, reasons, total, models = reasons.includes("model_switched") ? ["provider/first", "provider/second"] : METRICS.models] of [
   [false, "ranked", [], 42],
   [true, "ranked", [], 42],
+  [true, "ranked", [], 137, ["provider/second", "provider/first"]],
   [true, "unranked", ["missing_usage"], null],
   [true, "ranked", ["usage_not_recorded"], 42],
   [true, "unranked", ["model_switched"], 42],
 ]) {
-  test(`real Pi submission confirmation=${confirmed}, reasons=${reasons.join(",") || "none"}: no model activity or session mutation`, async (t) => {
+  test(`real Pi submission confirmation=${confirmed}, reasons=${reasons.join(",") || "none"}, models=${models.join(",")}: no model activity or session mutation`, async (t) => {
     const f = await fixture(t);
-    f.respond(200, { ...f.ranked, status, reasons, metrics: { ...METRICS, total_tokens: total, models: reasons.includes("model_switched") ? ["provider/first", "provider/second"] : METRICS.models } });
+    f.respond(200, { ...f.ranked, status, reasons, metrics: { ...METRICS, total_tokens: total, models } });
     await loginStudent(KEY, { ...f.options, credentialDir: join(f.directory, ".config", "agent-golf") });
     const timestamp = new Date().toISOString();
     const seed = [
@@ -404,6 +424,8 @@ for (const [confirmed, status, reasons, total] of [
       if (confirmed) {
         assert.equal(notifications.some((record) => record.message.includes(`Tokens: ${total === null ? "unknown" : total};`)), true);
         assert.ok(reasons.every((reason) => notifications.some((record) => record.message.includes(reason))));
+        assert.ok(notifications.some((record) => record.message.includes(`Models: ${models.join(", ")};`)));
+        assert.ok(notifications.some((record) => record.message.includes(`Reasons: ${reasons.join(", ") || "none"}.`)));
       }
     } finally {
       await client.close();
