@@ -335,26 +335,26 @@ button:hover {
   font-weight: 700;
 }
 
-/* Board: shown on a projector, so its text grows in steps with the window. The steps
-   are in rem, so browser zoom still enlarges the text. */
+/* Keep the board readable on a projector without making its eight columns wider
+   than the page. Rem units still respond to browser zoom. */
 
 .board-page .wrap {
   max-width: 90rem;
 }
 
 .board-page main {
-  font-size: 1.0625rem;
+  font-size: 1rem;
 }
 
 @media (min-width: 48rem) {
   .board-page main {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
   }
 }
 
 @media (min-width: 75rem) {
   .board-page main {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 }
 
@@ -364,7 +364,7 @@ button:hover {
   }
 
   .board-page main {
-    font-size: 2rem;
+    font-size: 1.375rem;
   }
 }
 
@@ -428,8 +428,7 @@ button:hover {
   color: var(--muted);
 }
 
-/* Tables scroll sideways inside their region on narrow screens, rather than breaking
-   names and models mid-word. */
+/* The eight-column board may still scroll on narrow screens. */
 .table-scroll {
   overflow-x: auto;
   margin: 0 0 1em;
@@ -437,9 +436,24 @@ button:hover {
   background: var(--panel);
 }
 
+@media (max-width: 55.99rem) {
+  #ranked {
+    min-width: 56rem;
+  }
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.board-page table {
+  font-size: 0.875em;
+}
+
+.board-page th,
+.board-page td {
+  padding: 0.5em 0.6em;
 }
 
 th,
@@ -503,10 +517,11 @@ td.ago {
   white-space: nowrap;
 }
 
-/* Model ids such as anthropic/claude-sonnet-4-5 stay on one line; the table scrolls instead. */
+/* Long model IDs and lists wrap instead of dictating the table's width. */
 td.model {
+  max-width: 30ch;
   color: var(--muted);
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 td.why {
