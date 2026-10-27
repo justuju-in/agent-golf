@@ -82,6 +82,39 @@ PROBLEMS = (
         model="any",
         thinking_level="any",
     ),
+    # CS437 exam, sitting 1 (Tue 27 Oct 2026). Hidden until class starts: to list it,
+    # set model="github-copilot/*" (Copilot Auto only) and thinking_level="any".
+    Problem(
+        slug="touch_tone_dialing",
+        title="Touch-Tone dialing",
+        challenge_url="https://hackattic.com/challenges/touch_tone_dialing",
+        instructions=(
+            "Solve Hackattic's Touch-Tone dialing challenge with your own Hackattic account. The"
+            " task and its JSON formats are on the challenge page.",
+            "Your program must fetch the problem from hackattic.com, send its answer back"
+            " there, and print both of Hackattic's replies: the problem (the input) and the"
+            " solve reply.",
+            'It counts as solved only when that printed solve reply says "result": "passed".',
+            "Exam rule: GitHub Copilot only (pick Copilot Auto in /model). An answer from any"
+            " other provider leaves the attempt unranked.",
+        ),
+    ),
+    # CS437 exam, sitting 2 (Thu 29 Oct 2026). Hidden until that sitting starts.
+    Problem(
+        slug="basic_face_detection",
+        title="Basic face detection",
+        challenge_url="https://hackattic.com/challenges/basic_face_detection",
+        instructions=(
+            "Solve Hackattic's Basic face detection challenge with your own Hackattic account."
+            " The task and its JSON formats are on the challenge page.",
+            "Your program must fetch the problem from hackattic.com, send its answer back"
+            " there, and print both of Hackattic's replies: the problem (the input) and the"
+            " solve reply.",
+            'It counts as solved only when that printed solve reply says "result": "passed".',
+            "Exam rule: GitHub Copilot only (pick Copilot Auto in /model). An answer from any"
+            " other provider leaves the attempt unranked.",
+        ),
+    ),
 )
 
 

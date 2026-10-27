@@ -179,6 +179,20 @@ class CounterTests(unittest.TestCase):
         self.assertNotIn('model_switched', result['reasons'])
         self.assertEqual(result['metrics']['thinking_levels'], ['high', 'low'])
 
+    def test_provider_wildcard_model(self):
+        # "github-copilot/*": Copilot Auto may answer with several Copilot models; any other
+        # provider anywhere in the session is a mismatch.
+        config = {'model': 'github-copilot/*', 'thinking_level': 'any'}
+        copilot_a = dict(assistant(), provider='github-copilot', model='gpt-5-mini')
+        copilot_b = dict(assistant(), provider='github-copilot', model='mai-code-1.1-flash')
+        result = score(log(copilot_a, copilot_b), 'x', config, set())
+        self.assertNotIn('model_mismatch', result['reasons'])
+        result = score(log(copilot_a, assistant()), 'x', config, set())
+        self.assertIn('model_mismatch', result['reasons'])
+        lookalike = dict(assistant(), provider='github-copilot-free', model='x')
+        result = score(log(lookalike), 'x', config, set())
+        self.assertIn('model_mismatch', result['reasons'])
+
     def test_initial_selection_events_ignored(self):
         entries = [json.loads(line) for line in log(assistant()).splitlines()]
         entries.insert(1, {'type': 'model_change', 'id': 'select', 'parentId': None,

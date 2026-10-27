@@ -19,6 +19,17 @@ PI_SECTIONS = frozenset({'preamble', 'tools', 'rules', 'docs', 'cwd'})
 EXTRA_SECTIONS = frozenset({'project_context', 'skills', 'addendum'})
 
 
+def model_ok(agreed_model, models: set[str]) -> bool:
+    """"any" accepts every model; "provider/*" accepts any number of that provider's models
+    (GitHub Copilot Auto changes model mid-session); anything else must be the only model."""
+    if agreed_model == 'any':
+        return True
+    if isinstance(agreed_model, str) and agreed_model.endswith('/*'):
+        provider = agreed_model[:-1]
+        return bool(models) and all(m.startswith(provider) for m in models)
+    return models == {agreed_model}
+
+
 def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]) -> dict:
     header, entries = read_session(session_text)
     metrics = dict(total_tokens=0, prompts=0, chars_typed=0, tool_calls=0,
@@ -88,7 +99,7 @@ def score(session_text: str, problem: str, agreed: dict, prior_folders: set[str]
                 models.add(f"{entry.get('provider', '')}/{entry['model']}")
     # Model "any" accepts every model, including more than one in a session (Copilot
     # Auto may change model mid-session). MODEL_SWITCHED stays defined for older rows.
-    if agreed.get('model') != 'any' and models != {agreed.get('model')}:
+    if not model_ok(agreed.get('model'), models):
         reasons.add(MODEL_MISMATCH)
     if agreed.get('thinking_level') != 'any' and levels != {agreed.get('thinking_level')}:
         reasons.add(THINKING_LEVEL_MISMATCH)

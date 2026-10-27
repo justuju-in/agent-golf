@@ -29,7 +29,7 @@ One attempt = one fresh Pi session in a new, empty folder. Students may make as 
 
 Model and thinking level are set per problem, not globally. The website keeps a small problem config in `server/`; each entry has `slug`, `title`, Hackattic URL, `instructions`, `model` (`provider/model`, or `"any"`) and `thinking_level` (a level, or `"any"`). That config is the single source for the problem list, the `unknown_problem` check, and the `agreed` setup passed to the counter, taken from the submitted problem's entry. "Solved" is one generic check (see Scoring), so adding a Hackattic problem needs only a new entry.
 
-With `"any"`, the counter skips that match. A problem whose model is `"any"` accepts any model, and more than one in a session (GitHub Copilot Auto can change model mid-session); the board lists every model that answered. With `thinking_level` `"any"`, thinking-level changes are not flagged. Ranking stays fewest tokens across all models, and the board of a model-`"any"` problem shows each row's model.
+With `"any"`, the counter skips that match. A model of the form `provider/*` (for example `github-copilot/*` for GitHub Copilot Auto) accepts any number of that provider's models in one session, and nothing else. A problem whose model is `"any"` accepts any model, and more than one in a session (GitHub Copilot Auto can change model mid-session); the board lists every model that answered. With `thinking_level` `"any"`, thinking-level changes are not flagged. Ranking stays fewest tokens across all models, and the board of a model-`"any"` problem shows each row's model.
 
 ## Scoring
 
@@ -129,7 +129,7 @@ This section defines key validation only; it does not define submission failure 
 | Code | Set by | Effect | When |
 |---|---|---|---|
 | `not_solved` | counter | unranked | no `"result": "passed"` (or playground-mode pass) reply for the problem's slug |
-| `model_mismatch` | counter | unranked | the models that answered (`metrics.models`) are not exactly the problem's model (not checked when it is `"any"`) |
+| `model_mismatch` | counter | unranked | the models that answered (`metrics.models`) are not exactly the problem's model, or for `provider/*` not all from that provider (not checked when it is `"any"`) |
 | `thinking_level_mismatch` | counter | unranked | the assistant messages' thinking levels (`metrics.thinking_levels`) are not exactly the problem's thinking level (not checked when it is `"any"`) |
 | `model_switched` | counter | unranked | no longer emitted (since `mvp-3`); kept so rows scored earlier still show a label |
 | `folder_reused` | counter | unranked | the session's `cwd` is in `prior_folders` |
