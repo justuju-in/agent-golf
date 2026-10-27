@@ -48,7 +48,14 @@ class ProblemConfigTest(unittest.TestCase):
         self.assertTrue(problem.instructions)
         self.assertEqual((problem.model, problem.thinking_level), ("any", "any"))
         # Listed after help_me_unpack, so the home page stays help_me_unpack's board.
-        self.assertEqual([listed.slug for listed in problems.listed()], ["help_me_unpack", "brute_force_zip"])
+        self.assertEqual([listed.slug for listed in problems.listed()][:2], ["help_me_unpack", "brute_force_zip"])
+
+    def test_exam_problems(self):
+        # CS437 exam: listed only for its sitting, GitHub Copilot (Auto) only.
+        listed = {problem.slug: problem for problem in problems.listed()}
+        self.assertEqual((listed["touch_tone_dialing"].model, listed["touch_tone_dialing"].thinking_level),
+                         ("github-copilot/*", "any"))
+        self.assertNotIn("basic_face_detection", listed)
 
     def test_unknown_slugs(self):
         for slug in ("nope", "Help_Me_Unpack", "", None, 3):
@@ -104,6 +111,14 @@ class ProblemListTest(unittest.TestCase):
                         "challenge_url": "https://hackattic.com/challenges/brute_force_zip",
                         "instructions": list(ZIP.instructions),
                         "model": "any",
+                        "thinking_level": "any",
+                    },
+                    {
+                        "slug": "touch_tone_dialing",
+                        "title": "Touch-Tone dialing",
+                        "challenge_url": "https://hackattic.com/challenges/touch_tone_dialing",
+                        "instructions": list(problems.get("touch_tone_dialing").instructions),
+                        "model": "github-copilot/*",
                         "thinking_level": "any",
                     },
                 ],

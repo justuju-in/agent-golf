@@ -82,8 +82,7 @@ PROBLEMS = (
         model="any",
         thinking_level="any",
     ),
-    # CS437 exam, sitting 1 (Tue 27 Oct 2026). Hidden until class starts: to list it,
-    # set model="github-copilot/*" (Copilot Auto only) and thinking_level="any".
+    # CS437 exam, sitting 1 (Tue 27 Oct 2026, 15:30). Copilot Auto only.
     Problem(
         slug="touch_tone_dialing",
         title="Touch-Tone dialing",
@@ -98,6 +97,8 @@ PROBLEMS = (
             "Exam rule: GitHub Copilot only (pick Copilot Auto in /model). An answer from any"
             " other provider leaves the attempt unranked.",
         ),
+        model="github-copilot/*",
+        thinking_level="any",
     ),
     # CS437 exam, sitting 2 (Thu 29 Oct 2026). Hidden until that sitting starts.
     Problem(
