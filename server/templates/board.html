@@ -23,6 +23,9 @@
       <p class="setup">Setup: <strong>{{ pages.setup_text(problem) }}</strong></p>
       <p class="scoring"><strong>{{ pages.SCORING }}</strong></p>
       <p class="live">live, updates every 30 s</p>
+    {%- if problem.solutions_url %}
+      <p class="solutions"><a href="{{ problem.solutions_url }}">Solutions: every solver's best prompt</a></p>
+    {%- endif %}
     </div>
   {%- if others %}
     <p class="other-boards">Other boards:
