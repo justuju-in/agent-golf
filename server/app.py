@@ -180,13 +180,17 @@ def submission(request: Request, submission_id: int, conn: Conn) -> HTMLResponse
     found = submissions.public(conn, submission_id)
     if found is None:
         return not_found(request)
+    problem = problems.get(found["problem"])
     return templates.TemplateResponse(
         request,
         "submission.html",
         {
             "submission": found,
             # None once the problem is no longer listed; the page then shows its slug.
-            "problem": problems.get(found["problem"]),
+            "problem": problem,
+            # Only for a problem whose prompts the class agreed to publish.
+            "prompts": submissions.typed_prompts(request.app.state.settings.uploads_dir, submission_id)
+            if problem is not None and problem.prompts_public else None,
             "rank": board.rank(conn, found["problem"], submission_id),
             "now": pages.now(),
         },

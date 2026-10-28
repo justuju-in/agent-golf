@@ -713,3 +713,19 @@ td.why::before {
 .placeholder {
   color: var(--muted);
 }
+
+/* Published prompts on a submission page (problems with prompts_public). */
+pre.prompt {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.prompts-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+}

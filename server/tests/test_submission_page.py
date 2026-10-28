@@ -5,7 +5,7 @@ import unittest
 from unittest import mock
 from urllib.parse import urlsplit
 
-from server import pages, problems
+from server import pages, problems, submissions
 from server.tests.dom import parse
 from server.tests.test_board import FIXED, PageTestCase, link, session
 
@@ -150,6 +150,29 @@ class SubmissionPageTest(PageTestCase):
         ):
             with self.subTest(private=private):
                 self.assertNotIn(private, html)
+
+    def test_public_prompts_only_where_the_problem_allows(self):
+        public = problems.Problem(
+            slug="open_prompts", title="Open prompts", challenge_url="https://hackattic.com/challenges/open_prompts",
+            instructions=("Solve it.",), model="any", thinking_level="any", prompts_public=True,
+        )
+        with mock.patch.object(problems, "PROBLEMS", (*problems.PROBLEMS, public)):
+            reply = self.upload("alice", session("p1", cwd="/home/alice/hidden"), problem="open_prompts")
+            html = self.client.get(link(reply["url"])).text
+        self.assertIn("secret prompt of p1", html)
+        for private in ("/home/alice/hidden", "alice_hackattic", self.keys["alice"]):
+            with self.subTest(private=private):
+                self.assertNotIn(private, html)
+        # Every other problem keeps its prompts private (test_only_public_fields).
+
+    def test_published_prompts_are_scrubbed(self):
+        text = ("GET https://hackattic.com/x?access_token=abc123def456 then export HACKATTIC_TOKEN=zzz999yyy "
+                "key sk-or-v1-0123456789abcdefghijklmn and ghp_0123456789abcdefghijklmnop")
+        out = submissions.scrub(text)
+        for secret in ("abc123def456", "zzz999yyy", "sk-or-v1-0123", "ghp_0123"):
+            with self.subTest(secret=secret):
+                self.assertNotIn(secret, out)
+        self.assertIn("access_token=<token>", out)
 
     def test_unknown_submission(self):
         self.upload("alice", session("a1"))

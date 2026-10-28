@@ -5,6 +5,7 @@ Never log a key or anything from an upload; a counter failure logs only the exce
 
 import hashlib
 import json
+import re
 import logging
 import os
 import sqlite3
@@ -270,3 +271,49 @@ def public(conn: sqlite3.Connection, submission_id: int) -> dict | None:
         "first_submitted_at": row["first_submitted_at"],
         "submitted_at": row["submitted_at"],
     }
+
+
+# Removed from published prompts: Hackattic tokens in URLs or exports, and API keys.
+SECRET_PATTERNS = (
+    (re.compile(r"(access_token=)[A-Za-z0-9_\-]{6,}"), r"\1<token>"),
+    (re.compile(r"(HACKATTIC_TOKEN=)[^\s'\"]+"), r"\1<token>"),
+    (re.compile(r"sk-[A-Za-z0-9_\-]{20,}"), "<key>"),
+    (re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"), "<key>"),
+    (re.compile(r"AIza[0-9A-Za-z_\-]{30,}"), "<key>"),
+)
+MAX_PROMPT_CHARS = 20_000
+
+
+def scrub(text: str) -> str:
+    for pattern, replacement in SECRET_PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text
+
+
+def typed_prompts(uploads_dir: Path, submission_id: int) -> list[str]:
+    """The text of the user's own messages in a stored session, scrubbed and capped, for a
+    problem whose prompts are public. Never tool output or the agent's replies. [] when the
+    file is missing or unreadable."""
+    try:
+        lines = (uploads_dir / f"{submission_id}.jsonl").read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return []
+    found = []
+    for line in lines:
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        message = entry.get("message") if isinstance(entry, dict) else None
+        if not isinstance(message, dict) or message.get("role") != "user":
+            continue
+        content = message.get("content")
+        if isinstance(content, str):
+            text = content
+        elif isinstance(content, list):
+            text = "\n".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
+        else:
+            continue
+        if text.strip():
+            found.append(scrub(text)[:MAX_PROMPT_CHARS])
+    return found

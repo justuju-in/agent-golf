@@ -51,6 +51,9 @@ class Problem:
     thinking_level: str | None = None
     # Optional https link to published solutions, shown on the problem's board once set.
     solutions_url: str | None = None
+    # True once the class has agreed: each submission page then shows the student's typed
+    # prompts (never the rest of the session), with tokens and keys removed.
+    prompts_public: bool = False
 
 
 PROBLEMS = (
@@ -102,6 +105,7 @@ PROBLEMS = (
         model="github-copilot/*",
         thinking_level="any",
         solutions_url="https://anup.github.io/courses/cs437-2026-27-sem1/classes/class-18/solutions/",
+        prompts_public=True,
     ),
     # CS437 exam, sitting 2 (Thu 29 Oct 2026). Hidden until that sitting starts.
     Problem(

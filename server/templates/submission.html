@@ -47,4 +47,11 @@
     {%- else %}
     <p>None.</p>
     {%- endif %}
+    {%- if prompts %}
+    <h2>{{ "Prompts" if prompts | length > 1 else "Prompt" }}</h2>
+    <p class="prompts-note">What the student typed. Tokens and keys are replaced by &lt;token&gt; or &lt;key&gt;.</p>
+    {%- for text in prompts %}
+    <pre class="prompt">{{ text }}</pre>
+    {%- endfor %}
+    {%- endif %}
 {%- endblock %}
