@@ -1,6 +1,7 @@
 """The board: GET / and GET /problems/<slug> (plan 002 step 3.1)."""
 
 import hashlib
+from dataclasses import replace
 import json
 import tempfile
 import unittest
@@ -90,6 +91,10 @@ class PageTestCase(unittest.TestCase):
         self.client = self.enterContext(TestClient(create_app(self.settings)))
         self.enterContext(mock.patch.object(submissions, "score", fake_counter))
         self.enterContext(mock.patch.object(pages, "now", return_value=NOW))
+        # The live config publishes prompts for some problems; these tests check the private
+        # default, so every problem is private here unless a test opts one in.
+        self.enterContext(mock.patch.object(
+            problems, "PROBLEMS", tuple(replace(problem, prompts_public=False) for problem in problems.PROBLEMS)))
         self.keys = {}
 
     def key(self, username):

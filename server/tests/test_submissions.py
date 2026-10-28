@@ -1,6 +1,7 @@
 """POST /api/v1/submissions and GET /submissions/<id>, per docs/spec.md."""
 
 import hashlib
+from dataclasses import replace
 import json
 import logging
 import os
@@ -86,6 +87,10 @@ class UploadTestCase(unittest.TestCase):
             self.key = users.create_user(conn, "alice", "alice_hackattic")
             self.bob_key = users.create_user(conn, "bob", "bob_hackattic")
         self.auth = {"Authorization": f"Bearer {self.key}"}
+        # The live config publishes prompts for some problems; these tests check the private
+        # default, so every problem is private here unless a test opts one in.
+        self.enterContext(mock.patch.object(
+            problems, "PROBLEMS", tuple(replace(problem, prompts_public=False) for problem in problems.PROBLEMS)))
 
     def post(self, **request):
         return self.client.post("/api/v1/submissions", **request)
