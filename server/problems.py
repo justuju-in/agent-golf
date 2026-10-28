@@ -71,6 +71,7 @@ PROBLEMS = (
         ),
         model="any",
         thinking_level="any",
+        prompts_public=True,
     ),
     Problem(
         slug="brute_force_zip",
@@ -86,6 +87,7 @@ PROBLEMS = (
         ),
         model="any",
         thinking_level="any",
+        prompts_public=True,
     ),
     # CS437 exam, sitting 1 (Tue 27 Oct 2026, 15:30). Copilot Auto only.
     Problem(
