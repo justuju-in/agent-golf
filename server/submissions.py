@@ -280,6 +280,8 @@ SECRET_PATTERNS = (
     (re.compile(r"sk-[A-Za-z0-9_\-]{20,}"), "<key>"),
     (re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"), "<key>"),
     (re.compile(r"AIza[0-9A-Za-z_\-]{30,}"), "<key>"),
+    # A Hackattic token typed bare into a prompt: 16 lowercase hex characters.
+    (re.compile(r"\b[0-9a-f]{16}\b"), "<token>"),
 )
 MAX_PROMPT_CHARS = 20_000
 

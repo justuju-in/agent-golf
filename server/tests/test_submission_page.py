@@ -173,6 +173,9 @@ class SubmissionPageTest(PageTestCase):
             with self.subTest(secret=secret):
                 self.assertNotIn(secret, out)
         self.assertIn("access_token=<token>", out)
+        bare = submissions.scrub('Access token to use: "96f5389ff0a29bfc". Then go.')
+        self.assertNotIn("96f5389ff0a29bfc", bare)
+        self.assertIn('"<token>"', bare)
 
     def test_unknown_submission(self):
         self.upload("alice", session("a1"))
