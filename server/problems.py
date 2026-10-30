@@ -126,6 +126,8 @@ PROBLEMS = (
         ),
         model="github-copilot/*",
         thinking_level="any",
+        solutions_url="https://anup.github.io/courses/cs437-2026-27-sem1/classes/class-18/solutions-face/",
+        prompts_public=True,
     ),
 )
 
