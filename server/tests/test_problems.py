@@ -55,7 +55,8 @@ class ProblemConfigTest(unittest.TestCase):
         listed = {problem.slug: problem for problem in problems.listed()}
         self.assertEqual((listed["touch_tone_dialing"].model, listed["touch_tone_dialing"].thinking_level),
                          ("github-copilot/*", "any"))
-        self.assertNotIn("basic_face_detection", listed)
+        self.assertEqual((listed["basic_face_detection"].model, listed["basic_face_detection"].thinking_level),
+                         ("github-copilot/*", "any"))
 
     def test_unknown_slugs(self):
         for slug in ("nope", "Help_Me_Unpack", "", None, 3):
@@ -118,6 +119,14 @@ class ProblemListTest(unittest.TestCase):
                         "title": "Touch-Tone dialing",
                         "challenge_url": "https://hackattic.com/challenges/touch_tone_dialing",
                         "instructions": list(problems.get("touch_tone_dialing").instructions),
+                        "model": "github-copilot/*",
+                        "thinking_level": "any",
+                    },
+                    {
+                        "slug": "basic_face_detection",
+                        "title": "Basic face detection",
+                        "challenge_url": "https://hackattic.com/challenges/basic_face_detection",
+                        "instructions": list(problems.get("basic_face_detection").instructions),
                         "model": "github-copilot/*",
                         "thinking_level": "any",
                     },

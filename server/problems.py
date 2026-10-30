@@ -109,7 +109,7 @@ PROBLEMS = (
         solutions_url="https://anup.github.io/courses/cs437-2026-27-sem1/classes/class-18/solutions/",
         prompts_public=True,
     ),
-    # CS437 exam, sitting 2 (Thu 29 Oct 2026). Hidden until that sitting starts.
+    # CS437 exam, sitting 2 (Fri 30 Oct 2026, 19:00). GitHub Copilot only.
     Problem(
         slug="basic_face_detection",
         title="Basic face detection",
@@ -124,6 +124,8 @@ PROBLEMS = (
             "Exam rule: GitHub Copilot only (pick Copilot Auto in /model). An answer from any"
             " other provider leaves the attempt unranked.",
         ),
+        model="github-copilot/*",
+        thinking_level="any",
     ),
 )
 
